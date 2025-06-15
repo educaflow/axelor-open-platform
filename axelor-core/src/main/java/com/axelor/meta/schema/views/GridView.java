@@ -56,6 +56,7 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
   @XmlAttribute private String onNew;
 
   @XmlAttribute private String onSave;
+  @XmlAttribute private String action;
 
   @XmlAttribute private String onDelete;
 
@@ -184,9 +185,15 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
   public String getOnSave() {
     return onSave;
   }
+  public String getAction() {
+    return action;
+  }
 
   public void setOnSave(String onSave) {
     this.onSave = onSave;
+  }
+  public void setAction(String action) {
+    this.action = action;
   }
 
   public String getOnDelete() {

@@ -1536,6 +1536,13 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="action" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Acción a realizar con el double click en la fila
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+
         <xsd:attribute name="onDelete" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>Comma-separated list of actions to execute on delete event.

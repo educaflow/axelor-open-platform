@@ -52,7 +52,7 @@ import { toKebabCase } from "@/utils/names";
 import { ActionExecutor } from "@/view-containers/action";
 import { Attrs } from "@/views/form/builder";
 import { findView } from "@/services/client/meta-cache";
-import { getDefaultValues, nextId } from "@/views/form/builder/utils";
+import { getDefaultValues, nextId, processContextValues } from "@/views/form/builder/utils";
 
 import {
   getWidget,
@@ -428,10 +428,36 @@ export const Grid = forwardRef<
 
   const handleRowDoubleClick = useCallback(
     (e: React.SyntheticEvent, row: GridRow, rowIndex: number) => {
-      onView?.(row.record);
+      const action=view.action;
+      const signal=view.name;
+      console.log(action+":+++++++++++++++++++++++++++++++++++++++")
+      
+      if (action && actionExecutor) {
+          handleRowDoubleClickActionId(row, action, signal ?? "", actionExecutor);
+      } else {
+        onView?.(row.record);
+      }
     },
-    [onView],
+    [onView,actionExecutor,view],
   );
+
+  async function handleRowDoubleClickActionId(row: GridRow,action:string,signal:string, actionExecutor: ActionExecutor) {
+    const record=row.record;
+    await actionExecutor.waitFor();
+      const res = await actionExecutor.execute(action, {
+        context: {
+          ...processContextValues(record),
+          selected: true,
+          _signal: signal,
+          _ids: undefined,
+          ...(record.$$id && {
+            id: record.$$id,
+            $$id: undefined,
+          }),
+        },
+      });
+  }
+
 
   const commitForm = useCallback(async () => {
     // save current edit row
