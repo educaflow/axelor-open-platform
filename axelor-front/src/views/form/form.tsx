@@ -255,6 +255,9 @@ export const useFormPerms = (
       "canSave",
       "canAttach",
       "canArchive",
+      "canCancel",
+      "canBack",
+      "canMore"
     ],
     [],
   );
@@ -1168,6 +1171,9 @@ const FormContainer = memo(function FormContainer({
   const canArchive = hasButton("archive") && record.id;
   const canAudit = hasButton("log") && record.id;
   const canAttach = hasButton("attach") && record.id;
+  const canBack = hasButton("back") && record.id;
+  const canCancel = hasButton("cancel") && record.id;
+  const canMore = hasButton("more") && record.id;
   const canOpenProcess =
     session.info?.features?.studio && record.id && processInstanceId;
 
@@ -1340,7 +1346,7 @@ const FormContainer = memo(function FormContainer({
                 icon: "refresh",
               },
               onClick: onRefresh,
-              hidden: !isDirty,
+              hidden: !isDirty || !canCancel,
             },
             {
               key: "back",
@@ -1349,7 +1355,7 @@ const FormContainer = memo(function FormContainer({
                 icon: "arrow_back",
               },
               onClick: onBack,
-              hidden: isDirty,
+              hidden: isDirty || !canBack,
             },
             {
               ...attachmentItem,
@@ -1358,6 +1364,7 @@ const FormContainer = memo(function FormContainer({
             {
               key: "more",
               iconOnly: true,
+              hidden: !canMore,
               iconProps: {
                 icon: "arrow_drop_down",
               },

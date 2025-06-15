@@ -60,6 +60,9 @@ public class FormView extends AbstractView implements ContainerView, ExtendableV
   @XmlAttribute private String canCopy;
 
   @XmlAttribute private String canAttach;
+  @XmlAttribute private String canCancel;
+  @XmlAttribute private String canBack;
+  @XmlAttribute private String canMore;
 
   @XmlAttribute private Integer cols;
 
@@ -175,10 +178,34 @@ public class FormView extends AbstractView implements ContainerView, ExtendableV
   public String getCanArchive() {
     return canArchive;
   }
+  public String getCanBack() {
+    return canBack;
+  }
+  public String getCanCancel() {
+    return canCancel;
+  }
+
+  public String getCanMore() {
+    return canMore;
+  }
+
 
   public void setCanArchive(String canArchive) {
     this.canArchive = canArchive;
   }
+
+  public void setCanBack(String canBack) {
+    this.canBack = canBack;
+  }
+
+  public void setCanCancel(String canCancel) {
+    this.canCancel = canCancel;
+  }
+
+  public void setCanMore(String canMore) {
+    this.canMore = canMore;
+  }
+
 
   public String getCanCopy() {
     return canCopy;
