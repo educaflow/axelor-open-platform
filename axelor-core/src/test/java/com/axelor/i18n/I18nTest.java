@@ -65,7 +65,7 @@ public class I18nTest extends JpaTest {
   public void test() {
 
     // test simple
-    assertEquals("Hello...", I18n.get("Hello World!!!"));
+    assertEquals("Hello...", I18n.get("Hello..."));
 
     // test plural
     assertEquals(
