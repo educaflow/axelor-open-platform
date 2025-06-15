@@ -89,6 +89,7 @@ public class AppModule extends AbstractModule {
       return;
     }
 
+    log.info("Versión personalizada para educaFlow");
     log.info("Configuring app modules...");
 
     for (Class<? extends AxelorModule> module : moduleClasses) {
