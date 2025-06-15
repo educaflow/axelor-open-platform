@@ -1,1 +1,3 @@
-./gradlew clean build publishToMavenLocal
+./gradlew clean
+./gradlew build --stacktrace
+./gradlew publishToMavenLocal

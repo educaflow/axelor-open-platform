@@ -2072,6 +2072,27 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="canCancel" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Show the 'Cancel' button if the given JavaScript expression is true.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="canBack" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Show the 'Back' button if the given JavaScript expression is true.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="canMore" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Show the 'More' menu if the given JavaScript expression is true.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+
+
+
         <xsd:attributeGroup ref="tns:LayoutContainerAttrs" />
       </xsd:extension>
     </xsd:complexContent>
