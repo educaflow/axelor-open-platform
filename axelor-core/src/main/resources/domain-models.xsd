@@ -1006,6 +1006,23 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+
+
+      <xsd:element name="extra-imports-model" minOccurs="0" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation>
+            Provide extra import statements en el modelo.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="extra-code-model" minOccurs="0" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation>
+            Provide extra code en el modelo.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
       <xsd:element name="track" type="dm:Track" minOccurs="0">
         <xsd:annotation>
           <xsd:documentation>

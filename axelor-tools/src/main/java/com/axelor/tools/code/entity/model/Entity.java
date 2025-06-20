@@ -158,6 +158,12 @@ public class Entity implements BaseType<Entity> {
   @XmlElement(name = "extra-imports")
   private String extraImports;
 
+  @XmlElement(name = "extra-code-model")
+  private String extraCodeModel;
+
+  @XmlElement(name = "extra-imports-model")
+  private String extraImportsModel;
+
   @XmlTransient Entity baseEntity;
 
   void afterUnmarshal(Unmarshaller unmarshaller, Object parent) {
@@ -279,6 +285,17 @@ public class Entity implements BaseType<Entity> {
         Stream.of(extraCode, other.extraCode)
             .filter(Utils::notBlank)
             .collect(Collectors.joining("\n"));
+
+    extraImportsModel =
+            Stream.of(extraImportsModel, other.extraImportsModel)
+                    .filter(Utils::notBlank)
+                    .collect(Collectors.joining("\n"));
+
+    extraCodeModel =
+            Stream.of(extraCodeModel, other.extraCodeModel)
+                    .filter(Utils::notBlank)
+                    .collect(Collectors.joining("\n"));
+
   }
 
   private boolean merge(Property existing, Property property) {
@@ -569,6 +586,16 @@ public class Entity implements BaseType<Entity> {
   public String getExtraImports() {
     return extraImports;
   }
+
+
+  public String getExtraCodeModel() {
+    return extraCodeModel;
+  }
+
+  public String getExtraImportsModel() {
+    return extraImportsModel;
+  }
+
 
   private JavaAnnotation $entity() {
     return isTrue(mappedSuperClass) ? null : new JavaAnnotation("javax.persistence.Entity");
@@ -878,6 +905,17 @@ public class Entity implements BaseType<Entity> {
     if (StringUtils.notBlank(extraImports)) {
       pojo.rawImports(extraImports.split("\n"));
     }
+
+    String extraImportsModel = getExtraImportsModel();
+    if (StringUtils.notBlank(extraImportsModel)) {
+      pojo.rawImports(extraImportsModel.split("\n"));
+    }
+
+    String extraCodeModel = getExtraCodeModel();
+    if (StringUtils.notBlank(extraCodeModel)) {
+      pojo.rawCode(StringUtils.stripIndent(extraCodeModel).trim());
+    }
+
 
     return pojo;
   }
