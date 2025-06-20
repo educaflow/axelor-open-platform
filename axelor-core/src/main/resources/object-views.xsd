@@ -1542,6 +1542,12 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="actionSignal" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Acción Signal a enviar con el double click en la fila
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
 
         <xsd:attribute name="onDelete" type="xsd:string">
           <xsd:annotation>

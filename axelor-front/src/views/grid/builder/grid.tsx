@@ -429,8 +429,7 @@ export const Grid = forwardRef<
   const handleRowDoubleClick = useCallback(
     (e: React.SyntheticEvent, row: GridRow, rowIndex: number) => {
       const action=view.action;
-      const signal=view.name;
-      console.log(action+":+++++++++++++++++++++++++++++++++++++++")
+      const signal = view.actionSignal ? view.actionSignal : view.name;
       
       if (action && actionExecutor) {
           handleRowDoubleClickActionId(row, action, signal ?? "", actionExecutor);
