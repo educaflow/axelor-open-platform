@@ -54,6 +54,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.ext.Provider;
 import org.apache.shiro.guice.web.GuiceShiroFilter;
 
+import com.axelor.web.servlet.EduFlowIncludeFilter;
+
 /** The main application module. */
 public class AppServletModule extends ServletModule {
 
@@ -97,6 +99,8 @@ public class AppServletModule extends ServletModule {
 
           @Override
           protected void configureServlets() {
+            // Filtro para servir archivos estáticos de /includes directamente
+            filter("*").through(EduFlowIncludeFilter.class);
             // check for CORS requests earlier
             filter("*").through(ProxyFilter.class);
             filter("*").through(CorsFilter.class);

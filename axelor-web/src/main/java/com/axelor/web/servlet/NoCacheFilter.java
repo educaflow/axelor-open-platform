@@ -55,7 +55,9 @@ public class NoCacheFilter implements Filter {
     "*.js",
     "*.css",
     "*.png",
-    "*.jpg"
+    "*.jpg",
+    "/includes/*",
+    "head.end.include.xml",
   };
 
   private static final List<String> EXCLUDED_EXTS = ImmutableList.of(".jsp");

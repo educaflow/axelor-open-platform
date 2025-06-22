@@ -1,3 +1,12 @@
-./gradlew clean
-./gradlew build --stacktrace
-./gradlew publishToMavenLocal
+#!/bin/bash
+
+echo "Matando procesos gradle y node colgados..."
+pkill -f '.*gradle.*' 2>/dev/null
+pkill -f '.*node.*' 2>/dev/null
+
+export NODE_OPTIONS=--max-old-space-size=4096
+export GRADLE_OPTS="-Xmx8g"
+
+./gradlew --no-daemon clean
+./gradlew --no-daemon build -x test --stacktrace
+./gradlew --no-daemon publishToMavenLocal

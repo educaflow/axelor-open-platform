@@ -32,3 +32,23 @@ Please see the [CONTRIBUTING](CONTRIBUTING.md) documentation.
 * [Axelor][uri_axelor]
 * [Documentation][uri_docs]
 * [License][uri_license]
+
+## EduFlow Includes Filter
+
+This project includes a custom servlet filter, `EduFlowIncludeFilter`, that serves static HTML snippets from the `/includes/` directory directly.
+
+These snippets are used to dynamically inject HTML fragments like:
+
+- `head.start.include.html`
+- `head.end.include.html`
+- `body.start.include.html`
+- `body.end.include.html`
+
+The filter intercepts requests to these specific `.include.html` files and serves them with `text/html` content type, bypassing usual controller logic to improve performance and modularity.
+
+### How to use
+
+Ensure your frontend uses these includes to inject dynamic content into the page head and body sections.
+
+---
+

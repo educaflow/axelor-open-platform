@@ -160,7 +160,7 @@ public class TomcatServer {
                     stop();
                   } else {
                     System.out.println();
-                    System.out.println("Running at http://localhost:" + port + contextPath);
+                    System.out.println(" Running at http://localhost:" + port + contextPath);
                     System.out.println();
                   }
                 }
