@@ -35,20 +35,26 @@ Please see the [CONTRIBUTING](CONTRIBUTING.md) documentation.
 
 ## EduFlow Includes Filter
 
-This project includes a custom servlet filter, `EduFlowIncludeFilter`, that serves static HTML snippets from the `/includes/` directory directly.
+Este proyecto incorpora una funcionalidad para servir fragmentos HTML estáticos ubicados en la carpeta `/includes/` mediante un filtro servlet personalizado llamado `EduFlowIncludeFilter`.
 
-These snippets are used to dynamically inject HTML fragments like:
+### Archivos incluidos gestionados
+
+El filtro intercepta las peticiones a estos archivos `.include.html` concretos y los sirve con el tipo MIME `text/html`, evitando pasar por la lógica habitual del controlador y mejorando rendimiento y modularidad.
 
 - `head.start.include.html`
 - `head.end.include.html`
 - `body.start.include.html`
 - `body.end.include.html`
 
-The filter intercepts requests to these specific `.include.html` files and serves them with `text/html` content type, bypassing usual controller logic to improve performance and modularity.
+### Uso en frontend
 
-### How to use
-
-Ensure your frontend uses these includes to inject dynamic content into the page head and body sections.
+Para inyectar dinámicamente contenido en las secciones `<head>` y `<body>` del documento, se utiliza la utilidad `eduFlowHTMLInjector` escrita en TypeScript, que carga estos fragmentos mediante fetch y los inserta en el DOM.
 
 ---
 
+### Clases añadidas
+
+- `axelor-front/src/utils/eduFlowHTMLInjector.ts` — Utilidad frontend para insertar fragmentos HTML dinámicamente.
+- `axelor-web/src/main/java/com/axelor/web/servlet/EduFlowIncludeFilter.java` — Filtro servlet backend para servir los archivos `.include.html` estáticos.
+
+---
