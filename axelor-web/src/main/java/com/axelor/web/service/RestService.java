@@ -416,17 +416,13 @@ public class RestService extends ResourceService {
     final InputStream fileStream = filePart.getBody(InputStream.class, null);
 
     if (!isAttachment) {
-      MultivaluedMap<String, String> headers = filePart.getHeaders();
-      String contentDisposition = headers.getFirst("Content-Disposition");
-      final String originalFileNameNoAttachment = getFileNameFromContentDisposition(contentDisposition);
-      final String safeFileNameNoAttachment = FileUtils.safeFileName(originalFileNameNoAttachment);
-
+      String safeFileNameContentDisposition= getSafeFileNameFromHeaders(filePart);
 
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       uploadSave(fileStream, out);
       data.put(field, out.toByteArray());
-      data.put(field+"FileName", safeFileNameNoAttachment);
-      data.put(field+"FileType", fileType);
+      data.put(getFieldFileNameFromBinaryField(field), safeFileNameContentDisposition);
+      data.put(getFieldFileTypeFromBinaryField(field), fileType);
 
       return getResource().save(request);
     }
@@ -455,19 +451,6 @@ public class RestService extends ResourceService {
 
     return response;
   }
-
-  private String getFileNameFromContentDisposition(String contentDisposition) {
-    if (contentDisposition == null) return null;
-    for (String cdPart : contentDisposition.split(";")) {
-      cdPart = cdPart.trim();
-      if (cdPart.startsWith("filename=")) {
-        // Quitar comillas si las tiene
-        return cdPart.substring(cdPart.indexOf('=') + 1).trim().replace("\"", "");
-      }
-    }
-    return null;
-  }
-
 
   private static final String BLANK_IMAGE =
       "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -562,30 +545,11 @@ public class RestService extends ResourceService {
       return javax.ws.rs.core.Response.ok(data).build();
     }
 
-    try {
-      Method getMethodFileName = bean.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,field)  + "FileName");
-      fileName=(String)getMethodFileName.invoke(bean);
-    } catch (NoSuchMethodException e) {
-      fileName = fileName.replaceAll("\\s", "") + "_" + id;
-      fileName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileName);
-    } catch (InvocationTargetException e) {
-        throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-    }
+    fileName = fileName.replaceAll("\\s", "") + "_" + id;
+    fileName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileName);
 
-    String fileType;
-    try {
-      Method getMethodFileType = bean.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,field) + "FileType");
-      fileType=(String)getMethodFileType.invoke(bean);
-    } catch (NoSuchMethodException e) {
-      fileType = "application/octet-stream";
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
-
+    fileName=getFileNameFromBinaryField(bean,field,fileName);
+    String fileType=getFileTypeFromBinaryField(bean,field,getDefaultMimeTypeFromDownloadFile());
 
     if (data == null) {
       return javax.ws.rs.core.Response.noContent().build();
@@ -985,4 +949,99 @@ public class RestService extends ResourceService {
 
     return response;
   }
+
+
+  /**
+   * Obtiene el nombre del fichero que se ha subido y no desde la clase de dominio
+   * @param filePart
+   * @return
+   */
+  private String getSafeFileNameFromHeaders(InputPart filePart) {
+    MultivaluedMap<String, String> headers = filePart.getHeaders();
+    String contentDisposition = headers.getFirst("Content-Disposition");
+    String fileName = getFileNameFromContentDisposition(contentDisposition);
+    if (fileName != null) {
+      fileName = FileUtils.safeFileName(fileName);
+    }
+
+    return fileName;
+  }
+
+  private String getFileNameFromContentDisposition(String contentDisposition) {
+    if (contentDisposition == null) {
+      return null;
+    }
+    for (String contentDispositionPart : contentDisposition.split(";")) {
+      contentDispositionPart = contentDispositionPart.trim();
+      if (contentDispositionPart.startsWith("filename=")) {
+        return contentDispositionPart.substring(contentDispositionPart.indexOf('=') + 1).trim().replace("\"", "");
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Es el campo del Model donde se gudarda el nombre del fichero.
+   * @param binaryField Nombre del campo binario del dominio donde se guardan los datos
+   * @return
+   */
+  private String getFieldFileNameFromBinaryField(String binaryField) {
+    return binaryField+"FileName";
+  }
+
+  /**
+   * Es el campo del Model donde se gudarda el tipo MIME del fichero.
+   * @param binaryField Nombre del campo binario del dominio donde se guardan los datos
+   * @return
+   */
+  private String getFieldFileTypeFromBinaryField(String binaryField) {
+    return binaryField+"FileType";
+  }
+
+  /**
+   * Dado un modelo y un campo binario del dominio que almacena un fichero, obtiene el nombre del fichero.
+   * @param entity Modelo de dominio
+   * @param binaryField El nombre del campo donde se almacena el fichero
+   * @param defaultValue Si no hay nombre de fichero retorna este valor.
+   * @return
+   */
+  private String getFileNameFromBinaryField(Model entity,String binaryField,String defaultValue) {
+    try {
+      Method getMethodFileName = entity.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,binaryField)  + "FileName");
+      return (String)getMethodFileName.invoke(entity);
+    } catch (NoSuchMethodException e) {
+      return defaultValue;
+    } catch (InvocationTargetException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Dado un modelo y un campo binario del dominio que almacena un fichero, obtiene el tipo MIME del fichero.
+   * @param entity Modelo de dominio
+   * @param binaryField El nombre del campo donde se almacena el fichero
+   * @param defaultValue Si no hay tipo de fichero retorna este valor.
+   * @return
+   */
+  private String getFileTypeFromBinaryField(Model entity,String binaryField,String defaultValue) {
+    try {
+      Method getMethodFileType = entity.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,binaryField) + "FileType");
+      return (String)getMethodFileType.invoke(entity);
+    } catch (NoSuchMethodException e) {
+      return defaultValue;
+    } catch (InvocationTargetException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * El tipo MIME por defecto si no sabemos el tipo de un fichero
+   * @return
+   */
+  private String getDefaultMimeTypeFromDownloadFile() {
+    return "application/octet-stream";
+  }
+
 }
+
