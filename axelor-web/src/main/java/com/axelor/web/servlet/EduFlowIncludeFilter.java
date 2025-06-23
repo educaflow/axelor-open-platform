@@ -3,7 +3,7 @@ package com.axelor.web.servlet;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext; // Importar ServletContext
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import javax.inject.Singleton;
 import java.util.List;
-
 
 @Singleton
 public class EduFlowIncludeFilter implements Filter {
@@ -51,12 +50,6 @@ public class EduFlowIncludeFilter implements Filter {
             return;
         }
 
-        // Seguridad opcional: validar Referer
-        // if (!isValidReferer(request)) {
-        //     response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid referer");
-        //     return;
-        // }
-
         try (InputStream is = servletContext.getResourceAsStream(relativePath)) {
             if (is == null) {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "Include not found: " + relativePath);
@@ -71,7 +64,6 @@ public class EduFlowIncludeFilter implements Filter {
             }
 
         } catch (Exception e) {
-            System.err.println("Error serving include " + relativePath + ": " + e.getMessage());
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to serve include");
         }
     }
@@ -81,7 +73,6 @@ public class EduFlowIncludeFilter implements Filter {
         // No cleanup needed
     }
 
-    // Opcional: valida que el Referer venga del mismo dominio
     @SuppressWarnings("unused")
     private boolean isValidReferer(HttpServletRequest request) {
         String referer = request.getHeader("Referer");

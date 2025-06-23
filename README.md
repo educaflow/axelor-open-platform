@@ -15,7 +15,7 @@ Axelor Open Platform is an open source Java framework to create modern business 
 ## Getting Started
 
 ```bash
-$ educaFlowInstall.sh
+$ axelor-publish-local.sh
 ```
 
 
