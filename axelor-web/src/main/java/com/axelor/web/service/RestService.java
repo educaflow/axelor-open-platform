@@ -70,6 +70,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -98,6 +100,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import javax.xml.bind.DatatypeConverter;
@@ -413,9 +416,18 @@ public class RestService extends ResourceService {
     final InputStream fileStream = filePart.getBody(InputStream.class, null);
 
     if (!isAttachment) {
+      MultivaluedMap<String, String> headers = filePart.getHeaders();
+      String contentDisposition = headers.getFirst("Content-Disposition");
+      final String originalFileNameNoAttachment = getFileNameFromContentDisposition(contentDisposition);
+      final String safeFileNameNoAttachment = FileUtils.safeFileName(originalFileNameNoAttachment);
+
+
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       uploadSave(fileStream, out);
       data.put(field, out.toByteArray());
+      data.put(field+"FileName", safeFileNameNoAttachment);
+      data.put(field+"FileType", fileType);
+
       return getResource().save(request);
     }
 
@@ -443,6 +455,19 @@ public class RestService extends ResourceService {
 
     return response;
   }
+
+  private String getFileNameFromContentDisposition(String contentDisposition) {
+    if (contentDisposition == null) return null;
+    for (String cdPart : contentDisposition.split(";")) {
+      cdPart = cdPart.trim();
+      if (cdPart.startsWith("filename=")) {
+        // Quitar comillas si las tiene
+        return cdPart.substring(cdPart.indexOf('=') + 1).trim().replace("\"", "");
+      }
+    }
+    return null;
+  }
+
 
   private static final String BLANK_IMAGE =
       "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -537,8 +562,30 @@ public class RestService extends ResourceService {
       return javax.ws.rs.core.Response.ok(data).build();
     }
 
-    fileName = fileName.replaceAll("\\s", "") + "_" + id;
-    fileName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileName);
+    try {
+      Method getMethodFileName = bean.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,field)  + "FileName");
+      fileName=(String)getMethodFileName.invoke(bean);
+    } catch (NoSuchMethodException e) {
+      fileName = fileName.replaceAll("\\s", "") + "_" + id;
+      fileName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileName);
+    } catch (InvocationTargetException e) {
+        throw new RuntimeException(e);
+    } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+    }
+
+    String fileType;
+    try {
+      Method getMethodFileType = bean.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,field) + "FileType");
+      fileType=(String)getMethodFileType.invoke(bean);
+    } catch (NoSuchMethodException e) {
+      fileType = "application/octet-stream";
+    } catch (InvocationTargetException e) {
+      throw new RuntimeException(e);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
 
     if (data == null) {
       return javax.ws.rs.core.Response.noContent().build();
@@ -548,11 +595,8 @@ public class RestService extends ResourceService {
       return javax.ws.rs.core.Response.ok().build();
     }
 
-    return javax.ws.rs.core.Response.ok(data)
-        .header(
-            "Content-Disposition",
-            ContentDisposition.attachment().filename(fileName).build().toString())
-        .build();
+    String contentDisposition=ContentDisposition.attachment().filename(fileName).build().toString();
+    return javax.ws.rs.core.Response.ok(data).type(fileType).header("Content-Disposition",contentDisposition).build();
   }
 
   @HEAD

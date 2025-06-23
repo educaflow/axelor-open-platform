@@ -33,6 +33,7 @@ import com.axelor.rpc.RequestFilter;
 import com.axelor.rpc.Response;
 import com.axelor.rpc.ResponseInterceptor;
 import com.axelor.web.openapi.OpenApiModule;
+import com.axelor.web.service.RestService;
 import com.axelor.web.servlet.CorsFilter;
 import com.axelor.web.servlet.I18nServlet;
 import com.axelor.web.servlet.MaintenanceFilter;
@@ -173,6 +174,11 @@ public class AppServletModule extends ServletModule {
             .having(Provider.class)
             .any()
             .find()) {
+
+      if (type.equals(RestService.class)) {
+        continue; // Saltar RestService porque así lo registra la App y puede sobreescribirlo
+      }
+
       bind(type);
     }
 

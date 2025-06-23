@@ -1043,7 +1043,7 @@ public class Resource<T extends Model> {
     return response;
   }
 
-  private Map<String, Object> toMap(Model entity, Request request) {
+  protected Map<String, Object> toMap(Model entity, Request request) {
     final String[] fields =
         request.getFields() == null ? null : request.getFields().toArray(new String[] {});
     final Map<String, Object> map = toMap(entity, filterPermitted(entity, fields));
@@ -1058,7 +1058,7 @@ public class Resource<T extends Model> {
   }
 
   @SuppressWarnings("unchecked")
-  private Map<String, Object> toGraph(Model entity, Map<String, Object> select) {
+  protected Map<String, Object> toGraph(Model entity, Map<String, Object> select) {
     final Map<String, Object> result = new HashMap<String, Object>();
     final Mapper mapper = Mapper.of(EntityHelper.getEntityClass(entity));
     final Property nameProperty =
@@ -1338,7 +1338,7 @@ public class Resource<T extends Model> {
     return response;
   }
 
-  private void checkRelationalPermissions(Map<String, Object> recordMap, Mapper mapper) {
+  protected void checkRelationalPermissions(Map<String, Object> recordMap, Mapper mapper) {
     for (final Entry<String, Object> entry : recordMap.entrySet()) {
       final String name = entry.getKey();
       final Class<? extends Model> target =
@@ -1367,7 +1367,7 @@ public class Resource<T extends Model> {
     }
   }
 
-  private void checkRelationalPermissions(
+  protected void checkRelationalPermissions(
       Map<String, Object> recordMap, Class<? extends Model> target) {
     final Long valueId = findId(recordMap);
     if (valueId == null || valueId <= 0L) {
@@ -1504,7 +1504,7 @@ public class Resource<T extends Model> {
     return response;
   }
 
-  private void fixLinks(Object bean) {
+  protected void fixLinks(Object bean) {
     if (bean == null) return;
     final Mapper mapper = Mapper.of(EntityHelper.getEntityClass(bean));
     for (Property prop : mapper.getProperties()) {
@@ -1736,7 +1736,7 @@ public class Resource<T extends Model> {
   }
 
   @SuppressWarnings("all")
-  private static Map<String, Object> _toMap(
+  protected static Map<String, Object> _toMap(
       Object bean, Map<String, Object> fields, boolean compact, int level) {
 
     if (bean == null) {
@@ -1869,7 +1869,7 @@ public class Resource<T extends Model> {
   }
 
   @SuppressWarnings("all")
-  private static Map<String, Object> unflatten(Map<String, Object> map, String... names) {
+  protected static Map<String, Object> unflatten(Map<String, Object> map, String... names) {
     if (map == null) map = Maps.newHashMap();
     if (names == null) return map;
     for (String name : names) {

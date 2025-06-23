@@ -28,14 +28,14 @@ import javax.ws.rs.PathParam;
 public abstract class ResourceService extends AbstractService {
 
   @PathParam("model")
-  private String entity;
+  protected String entity;
 
   protected String getModel() {
     return entity;
   }
 
   @SuppressWarnings("unchecked")
-  protected final Class<? extends Model> entityClass() {
+  protected Class<? extends Model> entityClass() {
     try {
       return (Class<Model>) Class.forName(entity);
     } catch (ClassNotFoundException e) {
@@ -43,7 +43,7 @@ public abstract class ResourceService extends AbstractService {
     }
   }
 
-  protected final Resource<?> getResource() {
+  protected Resource<?> getResource() {
     Type type = Types.newParameterizedType(Resource.class, entityClass());
     return (Resource<?>) getInjector().getInstance(Key.get(type));
   }
