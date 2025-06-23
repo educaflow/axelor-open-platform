@@ -95,15 +95,9 @@ export function Button(props: WidgetProps) {
       const { prompt, onClick } = schema;
 
       console.log("Element clicked")
-      /**
-       * Cambio de comportamiento para que el onClick se ejecute
-       */
-      /*if (onClick && typeof onClick == "function") {
-        alert("onClick is a function, executing it");
-        onClick(e);
-      }*/
       
-      
+
+
       if (prompt) {
         const confirmed = await dialogs.confirm({
           content: prompt,
