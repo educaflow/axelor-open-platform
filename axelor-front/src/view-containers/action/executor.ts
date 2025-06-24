@@ -141,12 +141,10 @@ export class DefaultActionExecutor implements ActionExecutor {
 
   async execute(action: string, options?: ActionOptions) {
     
-    console.log("Executing action")
     if (typeof action == 'string' && action.startsWith('js:')) {
       const jsAction = action.slice(3).trim();
       if (jsAction) {
         try {
-          console.log("Executing JS action:", jsAction);
           const func = new Function(jsAction) as (...args: any[]) => void | Promise<void>;
           return await func();
         } catch (e) {

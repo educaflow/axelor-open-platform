@@ -93,11 +93,6 @@ export function Button(props: WidgetProps) {
   const handleClick = useCallback(
     async (e: Event) => {
       const { prompt, onClick } = schema;
-
-      console.log("Element clicked")
-      
-
-
       if (prompt) {
         const confirmed = await dialogs.confirm({
           content: prompt,
