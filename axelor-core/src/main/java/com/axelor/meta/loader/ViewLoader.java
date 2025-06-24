@@ -118,7 +118,7 @@ public class ViewLoader extends AbstractParallelLoader {
       process(file, module, update);
     } catch (IOException | JAXBException e) {
       LOG.error("Error while loading {}", file);
-      throw new RuntimeException(e);
+      throw new RuntimeException("Falló al cargar el fichero:"+ file, e);
     }
   }
 
