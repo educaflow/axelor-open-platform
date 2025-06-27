@@ -175,10 +175,6 @@ public class AppServletModule extends ServletModule {
             .any()
             .find()) {
 
-      if (type.equals(RestService.class)) {
-        continue; // Saltar RestService porque así lo registra la App y puede sobreescribirlo
-      }
-
       bind(type);
     }
 
