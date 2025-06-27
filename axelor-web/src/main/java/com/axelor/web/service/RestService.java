@@ -416,14 +416,9 @@ public class RestService extends ResourceService {
     final InputStream fileStream = filePart.getBody(InputStream.class, null);
 
     if (!isAttachment) {
-      String safeFileNameContentDisposition= getSafeFileNameFromHeaders(filePart);
-
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       uploadSave(fileStream, out);
       data.put(field, out.toByteArray());
-      data.put(getFieldFileNameFromBinaryField(field), safeFileNameContentDisposition);
-      data.put(getFieldFileTypeFromBinaryField(field), fileType);
-
       return getResource().save(request);
     }
 
@@ -457,7 +452,7 @@ public class RestService extends ResourceService {
 
   @SuppressWarnings("all")
   private javax.ws.rs.core.Response download(
-      MetaFile metaFile, String fileName, boolean checkOnly) {
+      MetaFile metaFile, String fileName, boolean checkOnly,boolean inline) {
     if (StringUtils.isBlank(fileName)) {
       fileName = (String) metaFile.getFileName();
     }
@@ -471,7 +466,14 @@ public class RestService extends ResourceService {
       return javax.ws.rs.core.Response.ok().build();
     }
 
-    return javax.ws.rs.core.Response.ok(
+    ContentDisposition.Builder contentDispositionBuilder;
+    if (inline) {
+      contentDispositionBuilder=ContentDisposition.inline();
+    } else {
+      contentDispositionBuilder=ContentDisposition.attachment();
+    }
+
+      return javax.ws.rs.core.Response.ok(
             new StreamingOutput() {
 
               @Override
@@ -479,10 +481,7 @@ public class RestService extends ResourceService {
                 uploadSave(new FileInputStream(inputFile), output);
               }
             })
-        .header(
-            "Content-Disposition",
-            ContentDisposition.attachment().filename(fileName).build().toString())
-        .build();
+        .header("Content-Disposition",contentDispositionBuilder.filename(fileName).build().toString()).type(metaFile.getFileType()).build();
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
@@ -493,7 +492,8 @@ public class RestService extends ResourceService {
       Long parentId,
       String parentModel,
       String fileName,
-      boolean checkOnly) {
+      boolean checkOnly,
+      boolean inline) {
 
     final Class klass = getResource().getModel();
     final boolean permitted;
@@ -517,7 +517,7 @@ public class RestService extends ResourceService {
     }
 
     if (bean instanceof MetaFile) {
-      return download((MetaFile) bean, fileName, checkOnly);
+      return download((MetaFile) bean, fileName, checkOnly,inline);
     }
 
     if (StringUtils.isBlank(fileName)) {
@@ -526,7 +526,7 @@ public class RestService extends ResourceService {
     Object data = mapper.get(bean, field);
 
     if (data instanceof MetaFile) {
-      return download((MetaFile) data, fileName, checkOnly);
+      return download((MetaFile) data, fileName, checkOnly,inline);
     }
 
     if (isImage) {
@@ -548,9 +548,6 @@ public class RestService extends ResourceService {
     fileName = fileName.replaceAll("\\s", "") + "_" + id;
     fileName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileName);
 
-    fileName=getFileNameFromBinaryField(bean,field,fileName);
-    String fileType=getFileTypeFromBinaryField(bean,field,getDefaultMimeTypeFromDownloadFile());
-
     if (data == null) {
       return javax.ws.rs.core.Response.noContent().build();
     }
@@ -559,8 +556,11 @@ public class RestService extends ResourceService {
       return javax.ws.rs.core.Response.ok().build();
     }
 
-    String contentDisposition=ContentDisposition.attachment().filename(fileName).build().toString();
-    return javax.ws.rs.core.Response.ok(data).type(fileType).header("Content-Disposition",contentDisposition).build();
+    return javax.ws.rs.core.Response.ok(data)
+        .header(
+            "Content-Disposition",
+            ContentDisposition.attachment().filename(fileName).build().toString())
+        .build();
   }
 
   @HEAD
@@ -572,9 +572,10 @@ public class RestService extends ResourceService {
       @QueryParam("image") boolean isImage,
       @QueryParam("parentId") Long parentId,
       @QueryParam("parentModel") String parentModel,
-      @QueryParam("fileName") String fileName) {
+      @QueryParam("fileName") String fileName,
+      @QueryParam("inline") boolean inline) {
 
-    return download(id, field, isImage, parentId, parentModel, fileName, true);
+    return download(id, field, isImage, parentId, parentModel, fileName, true, inline);
   }
 
   @GET
@@ -588,10 +589,11 @@ public class RestService extends ResourceService {
       @QueryParam("image") boolean isImage,
       @QueryParam("parentId") Long parentId,
       @QueryParam("parentModel") String parentModel,
-      @QueryParam("fileName") String fileName)
+      @QueryParam("fileName") String fileName,
+      @QueryParam("inline") boolean inline)
       throws IOException {
 
-    return download(id, field, isImage, parentId, parentModel, fileName, false);
+    return download(id, field, isImage, parentId, parentModel, fileName, false, inline);
   }
 
   private boolean checkMetaFileParentPermission(Long id, Long parentId, String parentModel) {
@@ -949,99 +951,4 @@ public class RestService extends ResourceService {
 
     return response;
   }
-
-
-  /**
-   * Obtiene el nombre del fichero que se ha subido y no desde la clase de dominio
-   * @param filePart
-   * @return
-   */
-  private String getSafeFileNameFromHeaders(InputPart filePart) {
-    MultivaluedMap<String, String> headers = filePart.getHeaders();
-    String contentDisposition = headers.getFirst("Content-Disposition");
-    String fileName = getFileNameFromContentDisposition(contentDisposition);
-    if (fileName != null) {
-      fileName = FileUtils.safeFileName(fileName);
-    }
-
-    return fileName;
-  }
-
-  private String getFileNameFromContentDisposition(String contentDisposition) {
-    if (contentDisposition == null) {
-      return null;
-    }
-    for (String contentDispositionPart : contentDisposition.split(";")) {
-      contentDispositionPart = contentDispositionPart.trim();
-      if (contentDispositionPart.startsWith("filename=")) {
-        return contentDispositionPart.substring(contentDispositionPart.indexOf('=') + 1).trim().replace("\"", "");
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Es el campo del Model donde se gudarda el nombre del fichero.
-   * @param binaryField Nombre del campo binario del dominio donde se guardan los datos
-   * @return
-   */
-  private String getFieldFileNameFromBinaryField(String binaryField) {
-    return binaryField+"FileName";
-  }
-
-  /**
-   * Es el campo del Model donde se gudarda el tipo MIME del fichero.
-   * @param binaryField Nombre del campo binario del dominio donde se guardan los datos
-   * @return
-   */
-  private String getFieldFileTypeFromBinaryField(String binaryField) {
-    return binaryField+"FileType";
-  }
-
-  /**
-   * Dado un modelo y un campo binario del dominio que almacena un fichero, obtiene el nombre del fichero.
-   * @param entity Modelo de dominio
-   * @param binaryField El nombre del campo donde se almacena el fichero
-   * @param defaultValue Si no hay nombre de fichero retorna este valor.
-   * @return
-   */
-  private String getFileNameFromBinaryField(Model entity,String binaryField,String defaultValue) {
-    try {
-      Method getMethodFileName = entity.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,binaryField)  + "FileName");
-      return (String)getMethodFileName.invoke(entity);
-    } catch (NoSuchMethodException e) {
-      return defaultValue;
-    } catch (InvocationTargetException | IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  /**
-   * Dado un modelo y un campo binario del dominio que almacena un fichero, obtiene el tipo MIME del fichero.
-   * @param entity Modelo de dominio
-   * @param binaryField El nombre del campo donde se almacena el fichero
-   * @param defaultValue Si no hay tipo de fichero retorna este valor.
-   * @return
-   */
-  private String getFileTypeFromBinaryField(Model entity,String binaryField,String defaultValue) {
-    try {
-      Method getMethodFileType = entity.getClass().getMethod("get"+CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL,binaryField) + "FileType");
-      return (String)getMethodFileType.invoke(entity);
-    } catch (NoSuchMethodException e) {
-      return defaultValue;
-    } catch (InvocationTargetException | IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  /**
-   * El tipo MIME por defecto si no sabemos el tipo de un fichero
-   * @return
-   */
-  private String getDefaultMimeTypeFromDownloadFile() {
-    return "application/octet-stream";
-  }
-
 }
-
