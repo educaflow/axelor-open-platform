@@ -36,6 +36,8 @@ public class Button extends SimpleWidget {
   @XmlAttribute private String iconHover;
 
   @XmlAttribute private String link;
+  @XmlAttribute private boolean outline;
+  @XmlAttribute private String size;
 
   @XmlAttribute private String prompt;
 
@@ -75,6 +77,23 @@ public class Button extends SimpleWidget {
   public void setLink(String link) {
     this.link = link;
   }
+
+  public boolean isOutline() {
+    return outline;
+  }
+
+  public void setOutline(boolean outline) {
+    this.outline = outline;
+  }
+
+  public String getSize() {
+    return size;
+  }
+
+  public void setSize(String size) {
+    this.size = size;
+  }
+
 
   @JsonGetter("prompt")
   public String getLocalizedPrompt() {

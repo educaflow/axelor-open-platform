@@ -2181,6 +2181,8 @@
                       <xsd:extension base="tns:Button">
                         <xsd:attribute name="iconHover" use="prohibited"/>
                         <xsd:attribute name="link" use="prohibited"/>
+                        <xsd:attribute name="outline" use="prohibited"/>
+                        <xsd:attribute name="size" use="prohibited"/>
                         <xsd:attribute name="showTitle" use="prohibited"/>
                         <xsd:attribute name="widget" use="prohibited"/>
                         <xsd:attribute name="x-field" use="prohibited"/>
@@ -3366,6 +3368,25 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+
+
+        <xsd:attribute name="outline" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>
+              Si se muestra con el estilo outline
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+
+        <xsd:attribute name="size" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>
+              tamaño del botón, puede valor btn-lg o btn-sm
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+
+
         <xsd:attribute name="prompt" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>
@@ -3611,6 +3632,8 @@
         <xsd:attribute name="rowOffset" use="prohibited" />
         <xsd:attribute name="height" use="prohibited" />
         <xsd:attribute name="link" use="prohibited" />
+        <xsd:attribute name="size" use="prohibited" />
+        <xsd:attribute name="outline" use="prohibited" />
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

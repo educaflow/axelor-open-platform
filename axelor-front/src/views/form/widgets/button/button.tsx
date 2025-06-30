@@ -54,15 +54,36 @@ const variants = [
   "warning",
   "light",
   "dark",
+  "link"
+] as const;
+
+const sizes = [
+  "lg",
+  "sm",
 ] as const;
 
 export function findVariant(schema: Schema) {
-  if (typeof schema.link === "string") return "link";
+  if ((typeof schema.link === "string") && (typeof schema.css !== "string")) return "link";
   if (schema.css) {
     const variant = schema.css.replace("btn-", "");
     if (variants.includes(variant)) return variant;
   }
   return "primary";
+}
+
+export function findSize(schema: Schema) {
+  if (schema.size) {
+    const size = schema.size.replace("btn-", "");
+    if (sizes.includes(size)) return size;
+  }
+  return undefined;
+}
+
+export function findOutline(schema: Schema) {
+  if (schema.outline) {
+    return schema.outline;
+  }
+  return false;
 }
 
 export function Button(props: WidgetProps) {
@@ -78,6 +99,8 @@ export function Button(props: WidgetProps) {
   const { title } = attrs;
 
   const variant = findVariant(schema);
+  const size = findSize(schema);
+  const outline = findOutline(schema);
   const [wait, setWait] = useState(false);
 
   const getParent = useAtomCallback(
@@ -151,7 +174,7 @@ export function Button(props: WidgetProps) {
   const button = (
     <BtnComponent
       {...(BtnComponent === Btn
-        ? { variant }
+        ? { variant,outline,size }
         : {
             title: help,
           })}

@@ -431,7 +431,6 @@ public class XMLViews {
       view = view == null ? findMetaView(views, name, null, null, module, null) : view;
 
       if (view == null) {
-        log.error("No such view found: {}", name);
         return null;
       }
     }
