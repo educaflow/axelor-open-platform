@@ -39,12 +39,20 @@ export interface ActionCloseData extends IActionData {
   type: "close";
 }
 
+export interface ActionSignDocumentData extends IActionData {
+  type: "signDocument";
+  sourceField: string;
+  targetField: string;
+  dossierType: string;
+}
+
 export type ActionData =
   | ActionAttrsData
   | ActionValueData
   | ActionFocusData
   | ActionCloseData
-  | ActionRecordData;
+  | ActionRecordData
+  | ActionSignDocumentData;
 
 export type ActionListener = (data: ActionData) => void;
 

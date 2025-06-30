@@ -142,11 +142,13 @@ export class DefaultActionExecutor implements ActionExecutor {
   async execute(action: string, options?: ActionOptions) {
     
     if (typeof action == 'string' && action.startsWith('js:')) {
+      const context = this.#handler.getContext();
       const jsAction = action.slice(3).trim();
       if (jsAction) {
         try {
-          const func = new Function(jsAction) as (...args: any[]) => void | Promise<void>;
-          return await func();
+          //const func = new Function(jsAction) as (...args: any[]) => void | Promise<void>;
+          const func = new Function('context', jsAction) as (context: any) => void | Promise<void>;
+          return await func(context);
         } catch (e) {
           console.error("Error executing JS action:", e);
           throw e;
@@ -439,6 +441,28 @@ export class DefaultActionExecutor implements ActionExecutor {
       this.#closeView();
       this.#handler.close();
     }
+    
+    /*if (data.type === "signDocument") {
+      const { sourceField, targetField, dossierType } = data;
+      
+      const context = this.#handler.getContext();
+      const sourceFile = context[sourceField];
+      
+      if (!sourceFile) {
+        throw new Error(
+          i18n.get("Source file is not provided for signing document."),
+        );
+      }
+      
+      // 1. Obtener el archivo original
+      const originalFile = await fetOriginalFile(sourceFile);
+      
+      // 2. Firmar el archivo
+      const signedFile = await signDocumentFile(originalFile, dossierType);
+      
+      // 3. Asignar el archivo firmado al campo de destino
+      this.#handler.setValue(targetField, signedFile);
+    }*/
   }
 
   async #closeView() {
