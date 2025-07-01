@@ -444,28 +444,6 @@ export class DefaultActionExecutor implements ActionExecutor {
       this.#closeView();
       this.#handler.close();
     }
-    
-    /*if (data.type === "signDocument") {
-      const { sourceField, targetField, dossierType } = data;
-      
-      const context = this.#handler.getContext();
-      const sourceFile = context[sourceField];
-      
-      if (!sourceFile) {
-        throw new Error(
-          i18n.get("Source file is not provided for signing document."),
-        );
-      }
-      
-      // 1. Obtener el archivo original
-      const originalFile = await fetOriginalFile(sourceFile);
-      
-      // 2. Firmar el archivo
-      const signedFile = await signDocumentFile(originalFile, dossierType);
-      
-      // 3. Asignar el archivo firmado al campo de destino
-      this.#handler.setValue(targetField, signedFile);
-    }*/
   }
 
   async #closeView() {
