@@ -146,8 +146,11 @@ export class DefaultActionExecutor implements ActionExecutor {
       const jsAction = action.slice(3).trim();
       if (jsAction) {
         try {
-          //const func = new Function(jsAction) as (...args: any[]) => void | Promise<void>;
-          const func = new Function('context', jsAction) as (context: any) => void | Promise<void>;
+          const injectedJsAction = jsAction.replace(
+            /^([a-zA-Z0-9_$]+)\s*\(/,
+            '$1(context, '
+          );
+          const func = new Function('context', `return (${injectedJsAction});`) as (context: any) => void | Promise<void>;
           return await func(context);
         } catch (e) {
           console.error("Error executing JS action:", e);
