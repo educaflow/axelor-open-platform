@@ -49,7 +49,7 @@ public class GenerateCode extends DefaultTask {
       "Generate code for domain models from xml definitions.";
   public static final String TASK_GROUP = AxelorPlugin.AXELOR_BUILD_GROUP;
 
-  private static final String DIR_INPUT = "src/main/resources/domains";
+  private static final String DIR_INPUT = "src/main";
 
   private static final String DIR_OUTPUT_JAVA = "src-gen/java";
   private static final String DIR_OUTPUT_RESOURCES = "src-gen/resources";
