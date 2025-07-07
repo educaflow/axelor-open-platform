@@ -32,8 +32,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import javax.inject.Singleton;
 import org.slf4j.Logger;
@@ -55,23 +59,24 @@ class DataLoader extends AbstractLoader {
   @Override
   protected void doLoad(Module module, boolean update) {
 
-    File tmp = extract(module);
-    if (tmp == null) {
-      return;
-    }
+    List<File> directoriosTemporales = extract(module);
 
-    try {
-      File config = FileUtils.getFile(tmp, getDirName(), INPUT_CONFIG_NAME);
-      if (isConfig(config, patCsv)) {
-        importCsv(config);
-      } else if (isConfig(config, patXml)) {
-        importXml(config);
+    for (File tmp : directoriosTemporales) {
+
+      try {
+        File config = FileUtils.getFile(tmp, getDirName(), INPUT_CONFIG_NAME);
+        if (isConfig(config, patCsv)) {
+          importCsv(config);
+        } else if (isConfig(config, patXml)) {
+          importXml(config);
+        }
+      } catch (IOException e) {
+        LOG.error(e.getMessage(), e);
+        throw new RuntimeException(e);
+      } finally {
+        clean(tmp);
       }
-    } catch (IOException e) {
-      LOG.error(e.getMessage(), e);
-      throw new RuntimeException(e);
-    } finally {
-      clean(tmp);
+
     }
   }
 
@@ -108,29 +113,50 @@ class DataLoader extends AbstractLoader {
     return DATA_DIR_NAME;
   }
 
-  private File extract(Module module) {
+  private List<File> extract(Module module) {
+    try {
+      final String dirName = this.getDirName();
 
-    final String dirName = this.getDirName();
-    final List<URL> files = MetaScanner.findAll(module.getName(), dirName, "(.+?)");
-
-    if (files.isEmpty()) {
-      return null;
-    }
-
-    final File tmp = Files.createTempDir();
-
-    for (URL file : files) {
-      String name = file.toString();
-      name = name.substring(name.lastIndexOf(dirName));
-      try (final InputStream is = file.openStream()) {
-        copy(is, tmp, name);
-      } catch (IOException e) {
-        LOG.error(e.getMessage(), e);
-        throw new RuntimeException(e);
+      final List<URL> allDirectories = MetaScanner.findAll(module.getName(), dirName, "(.+?)");
+      Set<String> directorios = new HashSet<>();
+      for (URL file : allDirectories) {
+          String name = (new URI(file.toExternalForm())).normalize().toURL().toExternalForm();
+          name = name.substring(0,name.lastIndexOf(dirName)+ dirName.length());
+          directorios.add(name);
       }
-    }
 
-    return tmp;
+      final List<File> directoriosTemporales = new ArrayList<>();
+
+      for (String directorio : directorios) {
+        final List<URL> files = MetaScanner.findAll(module.getName(), dirName, "(.+?)");
+
+        final File tmp = Files.createTempDir();
+        directoriosTemporales.add(tmp);
+
+        for (URL file : files) {
+          String fileNormalized = (new URI(file.toExternalForm())).normalize().toURL().toExternalForm();
+
+          if (fileNormalized.startsWith(directorio)) {
+
+
+            String name = file.toString();
+            name = name.substring(name.lastIndexOf(dirName));
+
+
+            try (final InputStream is = file.openStream()) {
+              copy(is, tmp, name);
+            } catch (IOException e) {
+              LOG.error(e.getMessage(), e);
+              throw new RuntimeException(e);
+            }
+          }
+        }
+      }
+
+      return directoriosTemporales;
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
   }
 
   private void copy(InputStream in, File toDir, String name) throws IOException {
