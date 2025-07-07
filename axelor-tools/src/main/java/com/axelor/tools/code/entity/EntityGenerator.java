@@ -46,8 +46,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.xml.bind.JAXBException;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 public class EntityGenerator {
 
@@ -253,8 +257,8 @@ public class EntityGenerator {
 
   protected void findAll() throws IOException {
     if (!domainPath.exists()) return;
-    for (File file : domainPath.listFiles()) {
-      if (file.getName().endsWith(".xml")) {
+    for (File file : listFilesRecursively(domainPath)) {
+      if (isDomainModel(file)) {
         findFrom(file);
       }
     }
@@ -276,8 +280,8 @@ public class EntityGenerator {
 
   protected void processAll(boolean verbose) throws IOException {
     if (!domainPath.exists()) return;
-    for (File file : domainPath.listFiles()) {
-      if (file.getName().endsWith(".xml")) {
+    for (File file : listFilesRecursively(domainPath)) {
+      if (isDomainModel(file)) {
         process(file, verbose);
       }
     }
@@ -323,8 +327,8 @@ public class EntityGenerator {
     final Set<File> generated = new HashSet<>();
 
     if (this.domainPath.exists()) {
-      for (File file : domainPath.listFiles()) {
-        if (file.getName().endsWith(".xml")) {
+      for (File file : listFilesRecursively(domainPath)) {
+        if (isDomainModel(file)) {
           process(file, true);
         }
       }
@@ -450,5 +454,79 @@ public class EntityGenerator {
       }
     }
     return gen;
+  }
+
+
+
+  private static List<File> listFilesRecursively(File directory) {
+    if (directory == null) {
+
+      throw  new IllegalArgumentException("directory is null");
+    }
+    if (directory.isDirectory()==false) {
+      throw  new IllegalArgumentException("El directorio no es un directorio: " + directory.getAbsolutePath());
+    }
+    if (!directory.exists()) {
+      throw  new IllegalArgumentException("El directorio no existe: " + directory.getAbsolutePath());
+    }
+
+
+    List<File> listFiles=new ArrayList<>();
+    walkfilesRecursively(directory, listFiles);
+
+    return listFiles;
+  }
+  private static void walkfilesRecursively(File directory,List<File> listFiles) {
+    if (directory == null) {
+      throw  new IllegalArgumentException("directory is null");
+    }
+    if (directory.isDirectory()==false) {
+      throw  new IllegalArgumentException("El directorio no es un directorio: " + directory.getAbsolutePath());
+    }
+    if (directory.exists()==false) {
+      throw  new IllegalArgumentException("El directorio no existe: " + directory.getAbsolutePath());
+    }
+
+
+    for (File file : directory.listFiles()) {
+      if (file.isDirectory()) {
+        walkfilesRecursively(file,listFiles); // Llamada recursiva para subdirectorios
+      } else {
+        listFiles.add(file);
+      }
+    }
+
+
+  }
+
+
+  private static boolean isDomainModel(File file) {
+    try {
+      if (file == null) {
+        throw new IllegalArgumentException("file is null");
+      }
+      if (!file.exists()) {
+        throw new IllegalArgumentException("file does not exist: " + file.getAbsolutePath());
+      }
+      if (!file.isFile()) {
+        throw new IllegalArgumentException("file is not a file: " + file.getAbsolutePath());
+      }
+      if (file.getName().endsWith(".xml") == false) {
+        return false;
+      }
+
+
+      Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file);
+      Element rootElement = doc.getDocumentElement();
+      if ("domain-models".equals(rootElement.getTagName())) {
+        return true;
+      } else {
+        return false;
+      }
+
+
+    } catch (Exception ex) {
+      throw new RuntimeException("Error procesando el fichero: " + file.getAbsolutePath(), ex);
+    }
   }
 }
