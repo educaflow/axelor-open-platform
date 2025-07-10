@@ -36,6 +36,7 @@ public class TomcatRun extends AbstractRunTask {
   private static final String MAIN_CLASS = "com.axelor.tomcat.TomcatRunner";
 
   private int port = 8080;
+  private String contextPath = null;
 
   private boolean debug;
 
@@ -44,17 +45,27 @@ public class TomcatRun extends AbstractRunTask {
     this.port = Integer.parseInt(port);
   }
 
+  @Option(option = "contextPath", description = "Specify the tomcat server contextPath (default /).")
+  public void setContextPath(String contextPath) {
+    this.contextPath = contextPath;
+  }
+
   @Option(option = "debug-jvm", description = "Specify whether to enable debugging on port 5005.")
   public void setDebug(boolean debug) {
     this.debug = debug;
   }
 
-  public static List<String> getArgs(Project project, int port) {
+  public static List<String> getArgs(Project project, int port,String contextPath) {
     final File baseDir =
         FileUtils.getFile(project.getLayout().getBuildDirectory().getAsFile().get(), "tomcat");
     final File confFile = FileUtils.getFile(baseDir, TomcatSupport.TOMCAT_RUNNER_CONFIG);
 
     final List<String> args = new ArrayList<>();
+
+    if (contextPath != null) {
+      args.add("--context-path");
+      args.add(contextPath);
+    }
 
     args.add("--port");
     args.add("" + port);
@@ -77,7 +88,7 @@ public class TomcatRun extends AbstractRunTask {
 
   @Input
   protected List<String> getArgs() {
-    return getArgs(getProject(), port);
+    return getArgs(getProject(), port,contextPath);
   }
 
   @Input
