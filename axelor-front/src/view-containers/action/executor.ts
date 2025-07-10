@@ -141,26 +141,30 @@ export class DefaultActionExecutor implements ActionExecutor {
 
   async execute(action: string, options?: ActionOptions) {
     
-    if (typeof action == 'string' && action.startsWith('js:')) {
-      const context = this.#handler.getContext();
-      const jsAction = action.slice(3).trim();
-      if (jsAction) {
-        try {
-          const injectedJsAction = jsAction.replace(
-            /^([a-zA-Z0-9_$]+)\s*\(/,
-            '$1(context, '
-          );
-          const func = new Function('context', `return (${injectedJsAction});`) as (context: any) => void | Promise<void>;
-          return await func(context);
-        } catch (e) {
-          console.error("Error executing JS action:", e);
-          throw e;
-        }
-      }
-      return;
-    }
-    
     const { enqueue = true, ...opts } = options ?? {};
+
+    // Verifica si es una ejecución serial
+    if (action.startsWith("serial:")) {
+      const actions = action.substring(7).split(",");
+      try {
+        for (const act of actions) {
+          if (enqueue) {
+            await this.#enqueue(act.trim(), opts);
+          } else {
+            await this.#execute(act.trim(), opts);
+          }
+        }
+        return;
+      } catch (e) {
+        const message =
+          typeof e === "string" ? e : e instanceof Error ? e.message : null;
+        if (message) {
+          dialogs.error({ content: message });
+        }
+        return Promise.reject(e);
+      }
+    }    
+    
     try {
       return enqueue
         ? await this.#enqueue(action, opts)
@@ -247,6 +251,25 @@ export class DefaultActionExecutor implements ActionExecutor {
   }
 
   async #handle(data: ActionResult, options?: ActionOptions) {
+    
+    if(data.executeJs) {
+      const context = this.#handler.getContext();
+      const jsAction = data.methodJs;
+      if (jsAction) {
+        try {
+          const func = (globalThis as any)[jsAction];
+          if(typeof func !== 'function') {
+            throw new Error(`JS method '${jsAction}' is not a valid function`);
+          }
+          await func(context, data.payload);
+          await this.#handler.setValues(context);
+        } catch (e) {
+          console.error("Error executing JS action:", e);
+          throw e;
+        }
+      }
+    }
+    
     if (data.exportFile) {
       const link = "ws/files/data-export";
       await download(link, data.exportFile);

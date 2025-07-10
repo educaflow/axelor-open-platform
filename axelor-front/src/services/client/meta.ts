@@ -379,6 +379,9 @@ export type ActionResult = {
     id: number;
     fileName: string;
   };
+  executeJs?: boolean;
+  methodJs?: string;
+  payload?: Record<string, any>;
 };
 
 function prepareActionResult(
