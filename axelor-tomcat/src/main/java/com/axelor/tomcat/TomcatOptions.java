@@ -75,10 +75,9 @@ public class TomcatOptions {
 
   public void setContextPath(String contextPath) {
     String context = contextPath == null ? "" : contextPath.trim();
-    if (context.isEmpty()) {
-      context = "/";
-    }
-    if (context.charAt(0) != '/') {
+    if (context.equals("/") || context.isEmpty()) {
+      context = "";
+    } else if (context.charAt(0) != '/')  {
       context = "/" + context;
     }
     this.contextPath = context;
