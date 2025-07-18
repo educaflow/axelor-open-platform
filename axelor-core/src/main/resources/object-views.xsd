@@ -2018,6 +2018,18 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="onValidate" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Comma-separated list of actions to execute on validate event.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="validateSignal" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Signal al llamar a la acción de onValidate
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="onNew" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>Comma-separated list of actions to execute on new event.

@@ -1,5 +1,5 @@
 #!/bin/bash
-
+clear
 echo "Matando procesos gradle y node colgados..."
 pkill -f '.*gradle.*' 2>/dev/null
 pkill -f '.*node.*' 2>/dev/null

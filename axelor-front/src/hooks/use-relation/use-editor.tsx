@@ -21,6 +21,8 @@ import { useAfterActions, useFormScope } from "@/views/form/builder/scope";
 
 import { initTab } from "../use-tabs";
 import { useSingleClickHandler } from "../use-button";
+import {ActionExecutor} from "@/view-containers/action";
+import {processContextValues} from "@/views/form/builder/utils.ts";
 
 export type EditorOptions = {
   model: string;
@@ -157,6 +159,23 @@ export function useEditor() {
   }, []);
 }
 
+async function callActionValidateRow(record: DataRecord,action:string,signal:string, actionExecutor: ActionExecutor) {
+  await actionExecutor.waitFor();
+  const res = await actionExecutor.execute(action, {
+    context: {
+      ...processContextValues(record),
+      selected: true,
+      _signal: signal,
+      _ids: undefined,
+      ...(record.$$id && {
+        id: record.$$id,
+        $$id: undefined,
+      }),
+    },
+  });
+}
+
+
 function Footer({
   canAttach = true,
   hasOk = true,
@@ -201,7 +220,7 @@ function Footer({
           await handler.actionExecutor?.wait();
 
           const state = handler.getState();
-          const { original, record } = state;
+          var { original, record } = state;
 
           const hasRecordChanged = () => !isEqual(original, record);
 
@@ -217,6 +236,17 @@ function Footer({
               return;
             }
 
+            if ((handler.actionExecutor) && (state.meta.view.onValidate)) {
+              const signal = state.meta.view.validateSignal || "default";
+              await callActionValidateRow(record, state.meta.view.onValidate, signal, handler.actionExecutor);
+              const responseRecord = handler.getState().record;
+              if ((responseRecord) && (Array.isArray(responseRecord?.errorMensajes))  &&  (responseRecord.errorMensajes.length > 0)) {
+                return;
+              }
+              record=handler.getState().record;
+            }
+            
+            
             if (canSave) {
               if (onSave) {
                 onSave({ ...record, _dirty: state.dirty });
@@ -267,7 +297,7 @@ function Footer({
       <Box d="flex" flex={1} justifyContent="flex-end" g={2}>
         {FooterComp && <FooterComp close={onClose} />}
         <Box d="flex" g={2}>
-          <Button variant="secondary" onClick={handleClose}>
+          <Button variant="secondary" outline onClick={handleClose}>
             {i18n.get("Close")}
           </Button>
           {hasOk && popupCanSave && (

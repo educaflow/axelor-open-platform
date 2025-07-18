@@ -38,6 +38,8 @@ public class FormView extends AbstractView implements ContainerView, ExtendableV
   @XmlAttribute private String onLoad;
 
   @XmlAttribute private String onSave;
+  @XmlAttribute private String onValidate;
+  @XmlAttribute private String validateSignal;
 
   @XmlAttribute private String onNew;
 
@@ -110,6 +112,20 @@ public class FormView extends AbstractView implements ContainerView, ExtendableV
   public void setOnSave(String onSave) {
     this.onSave = onSave;
   }
+
+
+    public String getOnValidate() {
+        return onValidate;
+    }
+    public void setOnValidate(String onValidate) {
+        this.onValidate = onValidate;
+    }
+    public String getValidateSignal() {
+        return validateSignal;
+    }
+    public void setValidateSignal(String validateSignal) {
+        this.validateSignal = validateSignal;
+    }
 
   public String getOnNew() {
     return onNew;
