@@ -82,6 +82,7 @@ class AuthSecurity implements JpaSecurity, Provider<JpaSecurity> {
   }
 
   private AuthResolver authResolver = new AuthResolver();
+  private EduFlowAuthResolver eduFlowAuthResolver = EduFlowAuthResolverRegistry.get();
 
   private User getUser() {
     final User user = AuthUtils.getUser();
@@ -133,7 +134,10 @@ class AuthSecurity implements JpaSecurity, Provider<JpaSecurity> {
     }
 
     final List<Filter> filters = Lists.newArrayList();
-    final Set<Permission> permissions = authResolver.resolve(user, model.getName(), type);
+
+    final Set<Permission> permissions = resolvePermissions(user, model.getName(), type, ids);
+    //final Set<Permission> permissions = authResolver.resolve(user, model.getName(), type);
+
     if (permissions.isEmpty()) {
       return null;
     }
@@ -169,7 +173,8 @@ class AuthSecurity implements JpaSecurity, Provider<JpaSecurity> {
       return true;
     }
 
-    final Set<Permission> permissions = authResolver.resolve(user, model.getName(), type);
+    final Set<Permission> permissions = resolvePermissions(user, model.getName(), type, ids);
+    //final Set<Permission> permissions = authResolver.resolve(user, model.getName(), type);
     if (permissions.isEmpty()) {
       return false;
     }
@@ -205,5 +210,14 @@ class AuthSecurity implements JpaSecurity, Provider<JpaSecurity> {
   @Override
   public JpaSecurity get() {
     return new AuthSecurity();
+  }
+
+  private Set<Permission> resolvePermissions (User user, String object, AccessType type, Long... ids) {
+    if (eduFlowAuthResolver != null) {
+      return eduFlowAuthResolver
+              .resolve(user, object, type, ids).orElse(
+              authResolver.resolve(user, object, type));
+    }
+    return authResolver.resolve(user, object, type);
   }
 }

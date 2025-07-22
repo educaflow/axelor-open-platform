@@ -33,12 +33,7 @@ import com.axelor.rpc.RequestFilter;
 import com.axelor.rpc.Response;
 import com.axelor.rpc.ResponseInterceptor;
 import com.axelor.web.openapi.OpenApiModule;
-import com.axelor.web.service.RestService;
-import com.axelor.web.servlet.CorsFilter;
-import com.axelor.web.servlet.I18nServlet;
-import com.axelor.web.servlet.MaintenanceFilter;
-import com.axelor.web.servlet.NoCacheFilter;
-import com.axelor.web.servlet.ProxyFilter;
+import com.axelor.web.servlet.*;
 import com.axelor.web.socket.inject.WebSocketModule;
 import com.axelor.web.socket.inject.WebSocketSecurity;
 import com.axelor.web.socket.inject.WebSocketSecurityInterceptor;
@@ -54,8 +49,6 @@ import java.util.List;
 import javax.ws.rs.Path;
 import javax.ws.rs.ext.Provider;
 import org.apache.shiro.guice.web.GuiceShiroFilter;
-
-import com.axelor.web.servlet.EduFlowIncludeFilter;
 
 /** The main application module. */
 public class AppServletModule extends ServletModule {
