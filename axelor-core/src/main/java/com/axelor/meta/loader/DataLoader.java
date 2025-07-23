@@ -34,14 +34,16 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.inject.Singleton;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 @Singleton
 class DataLoader extends AbstractLoader {
@@ -59,7 +61,7 @@ class DataLoader extends AbstractLoader {
   @Override
   protected void doLoad(Module module, boolean update) {
 
-    List<File> directoriosTemporales = extract(module);
+    List<File> directoriosTemporales = sortDataInitByPriority(extract(module));
 
     for (File tmp : directoriosTemporales) {
 
@@ -180,4 +182,72 @@ class DataLoader extends AbstractLoader {
       file.delete();
     }
   }
+
+    /**
+     * Sorts directories based on the presence of XML and CSV configurations.
+     * XML files are prioritized over CSV files, and within XML files, they are sorted by attribute priority.
+     *
+     * @param directorios List of directories to sort
+     * @return Sorted list of directories
+     */
+  public List<File> sortDataInitByPriority(List<File> directorios) {
+    return directorios.stream()
+            .map(dir -> {
+              File config = FileUtils.getFile(dir, getDirName(), INPUT_CONFIG_NAME);
+              boolean isCsv = isConfig(config, patCsv);
+              boolean isXml = isConfig(config, patXml);
+              int priority = isXml ? getPriority(config) : -1;
+              return new DataInitDirectoryDefinition(dir, isXml, isCsv, priority);
+            })
+            .sorted((dataInitDirectoryDefinition1, dataInitDirectoryDefinition2) -> {
+              // 1. XML antes que CSV
+              if (dataInitDirectoryDefinition1.isXml && !dataInitDirectoryDefinition2.isXml) return -1;
+              if (!dataInitDirectoryDefinition1.isXml && dataInitDirectoryDefinition2.isXml) return 1;
+
+              // 2. Entre XML, ordenar por priority descendente
+              if (dataInitDirectoryDefinition1.isXml && dataInitDirectoryDefinition2.isXml) {
+                return Integer.compare(dataInitDirectoryDefinition2.priority, dataInitDirectoryDefinition1.priority);
+              }
+
+              // 3. Ambos CSV o ambos no válidos, orden indefinido
+              return 0;
+            })
+            .map(dataInitDirectoryDefinition -> dataInitDirectoryDefinition.dir)
+            .collect(Collectors.toList());
+  }
+
+  public static int getPriority(File xmlFile) {
+    try {
+      System.out.println("Calculado prioridad de :" + xmlFile.getAbsolutePath());
+      Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xmlFile);
+      Element root = doc.getDocumentElement();
+      String priorityAttr = root.getAttribute("priority");
+      if (priorityAttr != null && !priorityAttr.trim().isEmpty()) {
+        return Integer.parseInt(priorityAttr);
+      } else {
+        return 0;
+      }
+    } catch (Exception e) {
+      System.out.println("Fallo calcular la prioridad de :" + xmlFile.getAbsolutePath());
+      e.printStackTrace();
+      return 0;
+    }
+
+  }
+
+  private static class DataInitDirectoryDefinition {
+    File dir;
+    boolean isXml;
+    boolean isCsv;
+    int priority;
+
+    DataInitDirectoryDefinition(File dir, boolean isXml, boolean isCsv, int priority) {
+      this.dir = dir;
+      this.isXml = isXml;
+      this.isCsv = isCsv;
+      this.priority = priority;
+    }
+  }
 }
+
+
