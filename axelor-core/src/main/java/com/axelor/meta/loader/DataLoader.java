@@ -218,7 +218,6 @@ class DataLoader extends AbstractLoader {
 
   public static int getPriority(File xmlFile) {
     try {
-      System.out.println("Calculado prioridad de :" + xmlFile.getAbsolutePath());
       Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xmlFile);
       Element root = doc.getDocumentElement();
       String priorityAttr = root.getAttribute("priority");
@@ -228,7 +227,7 @@ class DataLoader extends AbstractLoader {
         return 0;
       }
     } catch (Exception e) {
-      System.out.println("Fallo calcular la prioridad de :" + xmlFile.getAbsolutePath());
+      System.out.println("Falló al calcular la prioridad de :" + xmlFile.getAbsolutePath() + ". Se usará la prioridad 0 por defecto");
       e.printStackTrace();
       return 0;
     }
