@@ -106,6 +106,13 @@ public abstract class XMLBinder {
     if (binding.getSearch() != null) {
       LOG.trace("search: " + binding.getSearch());
       bean = JPA.all((Class<Model>) type).filter(binding.getSearch()).bind(ctx).fetchOne();
+      if (bean==null) {
+        StringBuilder sb=new StringBuilder();
+        for(String key : ctx.keySet()) {
+          sb.append(key+"="+ctx.get(key)+",");
+        }
+        LOG.warn("No se ha encontrado para la clase \"{}\" con la búsqueda \"{}\" ningún objeto. Context=\"{}\"",type.getSimpleName(),binding.getSearch(),sb);
+      }
       LOG.trace("search found: " + bean);
       if (bean != null && !Boolean.TRUE.equals(binding.getUpdate())) {
         LOG.trace("search no update");

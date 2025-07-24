@@ -216,8 +216,12 @@ public class MetaModelService {
     Mapper mapper = Mapper.of(klass);
 
     for (Property property : mapper.getProperties()) {
-      MetaField metaField =
-          this.createField(metaModel, getField(klass, property.getName()), property);
+      MetaField metaField;
+      try {
+        metaField = this.createField(metaModel, getField(klass, property.getName()), property);
+      } catch (Exception e) {
+        throw new RuntimeException("Falló createField para '" +property.getName()+"' con metaModel="+metaModel.toString()+ " y kclass="+klass.getName(),e);
+      }
       if (metaField != null) {
         modelFields.add(metaField);
       }
