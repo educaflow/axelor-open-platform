@@ -10,3 +10,6 @@ export GRADLE_OPTS="-Xmx8g"
 ./gradlew --no-daemon clean
 ./gradlew --no-daemon build --stacktrace
 ./gradlew --no-daemon publishToMavenLocal
+
+#./gradlew --no-daemon build --stacktrace -x test
+#./gradlew --no-daemon publishToMavenLocal
