@@ -111,7 +111,7 @@ public abstract class XMLBinder {
         for(String key : ctx.keySet()) {
           sb.append(key+"="+ctx.get(key)+",");
         }
-        LOG.warn("No se ha encontrado para la clase \"{}\" con la búsqueda \"{}\" ningún objeto. Context=\"{}\"",type.getSimpleName(),binding.getSearch(),sb);
+        LOG.warn("No se ha encontrado en el binding \"{}\" para la clase \"{}\" con la búsqueda \"{}\" ningún objeto. Context=\"{}\"",binding, type.getSimpleName(),binding.getSearch(),sb);
       }
       LOG.trace("search found: " + bean);
       if (bean != null && !Boolean.TRUE.equals(binding.getUpdate())) {
