@@ -65,15 +65,10 @@ export function Cards(props: ViewProps<CardsView>) {
     [getViewContext, view, action],
   );
 
-  const { width, minWidth } = useMemo(() => {
-    const width = view.width || "calc(100% / 3)";
-    const widths = width
-      .split(":")
-      .map((x) => x.trim())
-      .filter(Boolean);
+  const { width } = useMemo(() => {
+    const width = view.width || "200px";
     return {
-      width: widths[0],
-      minWidth: widths[1],
+      width: width,
     };
   }, [view.width]);
 
@@ -343,7 +338,9 @@ export function Cards(props: ViewProps<CardsView>) {
         </ViewToolBar>
       )}
       {records.length > 0 && (
-        <Box className={styles.cards}>
+        <Box className={styles.cards}
+             style={{ "--ax-cards-min-card-width": width } as React.CSSProperties} 
+        >
           {records.map((record) => (
             <Card
               key={record.id}
@@ -352,8 +349,6 @@ export function Cards(props: ViewProps<CardsView>) {
               view={view}
               onView={onView}
               Template={Template}
-              width={width}
-              minWidth={minWidth}
               onRefresh={onRefresh}
               {...(canEdit && {
                 onEdit: hasEditPopup ? onEditInPopup : onEdit,

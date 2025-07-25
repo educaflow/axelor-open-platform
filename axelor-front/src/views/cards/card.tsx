@@ -18,9 +18,7 @@ export const Card = memo(function Card({
   onView,
   onDelete,
   onRefresh,
-  Template,
-  width,
-  minWidth,
+  Template
 }: {
   record: DataRecord;
   view: CardsView;
@@ -71,18 +69,12 @@ export const Card = memo(function Card({
         px={{ base: 1, md: 2 }}
         mb={{ base: 2, md: 3 }}
         className={classes.card}
-        style={{
-          width,
-          minWidth,
-        }}
       >
         <Box
           className={clsx(classes.cardContent, className)}
           p={{ base: 2, md: 3 }}
           bgColor="body"
           w={100}
-          rounded
-          shadow="sm"
           onClick={handleClick}
         >
           <CardTemplate

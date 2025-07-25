@@ -1,7 +1,5 @@
 .card {
-  width: calc(100% / 3);
-  min-width: 250px;
-  cursor: pointer;
+  cursor: default;
   position: relative;
 
   .menuIcon {
@@ -26,7 +24,6 @@
 
 .cardContent {
   position: relative;
-  border: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
 }
 
 .card img {
