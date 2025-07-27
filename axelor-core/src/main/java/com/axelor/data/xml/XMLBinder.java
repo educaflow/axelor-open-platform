@@ -106,7 +106,7 @@ public abstract class XMLBinder {
     if (binding.getSearch() != null) {
       LOG.trace("search: " + binding.getSearch());
       bean = JPA.all((Class<Model>) type).filter(binding.getSearch()).bind(ctx).fetchOne();
-      if (bean==null) {
+      if ((bean==null) && ((binding.getCreate()==null) || (binding.getCreate()==false))) {
         StringBuilder sb=new StringBuilder();
         for(String key : ctx.keySet()) {
           sb.append(key+"="+ctx.get(key)+",");
