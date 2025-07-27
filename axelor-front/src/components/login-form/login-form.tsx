@@ -346,9 +346,9 @@ export function LoginForm({
         ></Box>
       )}
       {children}
-      <Box mt={3} as="p" textAlign="center">
-        {copyright}
-      </Box>
+      <Box mt={3} as="p" textAlign="center"
+           dangerouslySetInnerHTML={{ __html: sanitize(copyright) }}
+      ></Box>
     </Box>
   );
 }
@@ -428,7 +428,7 @@ function LoginFormButton({
       variant={variant ?? "primary"}
       d="flex"
       justifyContent="center"
-      mt={2}
+      mt={5}
       w={100}
       gap={4}
     >
