@@ -50,7 +50,7 @@ export function About() {
         <p>
           {i18n.get("Version")}: {app.version}
         </p>
-        <p>{copyright}</p>
+        <p dangerouslySetInnerHTML={{ __html: copyright }} />
         <Box d="flex" g={1} flexDirection="column">
           {app.home && <Link href={app.home}>{i18n.get("Home page")}</Link>}
           {app.help && <Link href={app.help}>{i18n.get("Documentation")}</Link>}
