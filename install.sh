@@ -4,7 +4,7 @@
 #pkill -f '.*gradle.*' 2>/dev/null
 #pkill -f '.*node.*' 2>/dev/null
 
-export NODE_OPTIONS=--max-old-space-size=2048
+export NODE_OPTIONS=--max-old-space-size=6096
 export GRADLE_OPTS="-Xmx2g"
 
 ./gradlew --no-daemon clean
