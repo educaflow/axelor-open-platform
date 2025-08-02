@@ -70,7 +70,7 @@ export function NodeText({
   }
 
   if ((!value && value !== 0) || typeof value === "object") {
-    return "---";
+    return "";
   }
 
   return value;
