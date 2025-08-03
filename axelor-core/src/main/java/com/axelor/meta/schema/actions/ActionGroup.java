@@ -31,6 +31,7 @@ import com.axelor.meta.schema.actions.validate.validator.Alert;
 import com.axelor.meta.schema.actions.validate.validator.Error;
 import com.axelor.meta.schema.actions.validate.validator.Info;
 import com.axelor.meta.schema.views.AbstractView;
+import com.axelor.rpc.Context;
 import com.axelor.rpc.ContextEntity;
 import com.axelor.rpc.Response;
 import com.google.common.base.Joiner;
@@ -385,6 +386,13 @@ public class ActionGroup extends ActionResumable {
     }
 
     try {
+      if (handler==null) {
+        throw new RuntimeException("handler es null");
+      }
+      Context context=handler.getContext();
+      if (context==null) {
+        throw new RuntimeException("context es null");
+      }
       handler.getContext().putAll(map);
     } catch (IllegalArgumentException e) {
       // SEE: RM-5373

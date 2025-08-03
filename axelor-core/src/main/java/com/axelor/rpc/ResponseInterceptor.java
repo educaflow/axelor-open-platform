@@ -119,7 +119,7 @@ public class ResponseInterceptor extends JpaSupport implements MethodInterceptor
       }
     }
     response.setException(throwable);
-    log.error("Error: {}", throwable.getMessage());
+    log.error("Error:"+throwable.getMessage(),throwable);
     return response;
   }
 
