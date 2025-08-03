@@ -353,10 +353,13 @@ function FarItems() {
     });
   }, [showEditor]);
 
+  const showFav=false;
+  const showMessages=false;
+  
   return (
     <CommandBar
       items={[
-        {
+        showFav ? {
           key: "fav",
           text: i18n.get("Favorite"),
           iconOnly: true,
@@ -364,8 +367,8 @@ function FarItems() {
             icon: "star",
           },
           render: FavoriteItem,
-        },
-        {
+        }: null,
+        showMessages ? {
           key: "messages",
           text: i18n.get("Messages"),
           icon: (props: any) => (
@@ -416,7 +419,7 @@ function FarItems() {
               onClick: () => openTab("team.tasks.todo"),
             },
           ],
-        },
+        } : null,
         {
           key: "user",
           text: i18n.get("User"),
@@ -475,7 +478,7 @@ function FarItems() {
             },
           ],
         },
-      ]}
+      ].filter(Boolean) as CommandItemProps[]}
     />
   );
 }
