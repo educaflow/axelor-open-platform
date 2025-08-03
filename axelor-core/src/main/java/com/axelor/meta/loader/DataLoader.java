@@ -133,7 +133,7 @@ class DataLoader extends AbstractLoader {
         final List<URL> files = MetaScanner.findAll(module.getName(), dirName, "(.+?)");
 
         final File tmp = Files.createTempDir();
-        directoriosTemporales.add(tmp);
+
 
         for (URL file : files) {
           String fileNormalized = (new URI(file.toExternalForm())).normalize().toURL().toExternalForm();
@@ -153,6 +153,13 @@ class DataLoader extends AbstractLoader {
             }
           }
         }
+
+        if (FileUtils.getFile(tmp, getDirName(), INPUT_CONFIG_NAME).exists()) {
+          directoriosTemporales.add(tmp);
+        } else {
+          clean(tmp);
+        }
+
       }
 
       return directoriosTemporales;
