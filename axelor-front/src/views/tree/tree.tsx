@@ -123,10 +123,6 @@ export function Tree({ meta }: ViewProps<TreeView>) {
         title: column.title || column.autoTitle || toTitleCase(column.name),
       };
       const type = toKebabCase(column.type ?? "");
-
-      if (column.colSpan) {
-        attrs.width="calc(100% * " + column.colSpan + " / 12)";
-      }
       
       if (type === "button") {
         attrs.title = "";

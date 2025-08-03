@@ -2153,6 +2153,7 @@
               <xsd:complexContent>
                 <xsd:extension base="tns:BaseSearchField">
                   <xsd:attribute name="multiple" use="prohibited"/>
+                  <xsd:attribute name="colSpan" use="prohibited"/>
                   <xsd:attribute name="required" use="prohibited"/>
                 </xsd:extension>
               </xsd:complexContent>
