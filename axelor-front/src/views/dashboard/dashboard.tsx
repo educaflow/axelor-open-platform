@@ -97,6 +97,7 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
   // dashboard context
   const [context, setContext] = useState({} as DataRecord);
   const [isFormInit, setFormInit] = useState(!view.onInit);
+  const [getSearchModel, setSearchModel] = useState(view.searchModel);
 
   const isRTL = useTheme().dir === "rtl";
 
@@ -337,6 +338,7 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
               onInit={view.onInit}
               onInitCompleted={onInitCompleted}
               onChange={onSearchValueChanged}
+              searchModel={getSearchModel}
             />
           </Box>
         )}

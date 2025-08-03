@@ -1986,6 +1986,13 @@
             <xsd:documentation>Call an action when dashboard is initialized.</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="searchModel" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>El modelo que se usa en la búsqueda</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

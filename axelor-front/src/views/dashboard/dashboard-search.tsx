@@ -32,11 +32,13 @@ export function DashboardSearch({
   onInit,
   onInitCompleted,
   onChange,
+  searchModel
 }: {
   meta: ViewData<FormView>;
   onChange: (values: DataRecord) => void;
   onInit?: string;
   onInitCompleted?: () => void;
+  searchModel?: string;
 }) {
   const formRef = useRef<HTMLDivElement | null>(null);
 
@@ -46,10 +48,10 @@ export function DashboardSearch({
 
   useAsyncEffect(async () => {
     if (onInit) {
-      await actionExecutor.execute(onInit);
+      await actionExecutor.execute(onInit,{context:{_model:searchModel} });
       onInitCompleted?.();
     }
-  }, [actionExecutor, onInit, onInitCompleted]);
+  }, [actionExecutor, onInit, onInitCompleted,searchModel]);
 
   return (
     <ScopeProvider scope={MetaScope} value={meta}>

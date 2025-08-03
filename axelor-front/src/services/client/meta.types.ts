@@ -720,6 +720,7 @@ export interface HtmlView extends View {
 export interface Dashboard extends View {
   type: "dashboard";
   onInit?: string;
+  searchModel?: string;
   items?: PanelDashlet[];
   searchFields?: SearchField[];
 }

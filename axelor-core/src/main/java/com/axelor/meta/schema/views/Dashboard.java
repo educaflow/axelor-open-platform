@@ -38,6 +38,7 @@ public class Dashboard extends AbstractView implements ContainerView {
   private List<AbstractWidget> items;
 
   @XmlAttribute private String onInit;
+  @XmlAttribute private String searchModel;
 
   @Override
   public List<AbstractWidget> getItems() {
@@ -56,6 +57,13 @@ public class Dashboard extends AbstractView implements ContainerView {
     this.onInit = onInit;
   }
 
+  public String getSearchModel() {
+    return searchModel;
+  }
+
+    public void setSearchModel(String searchModel) {
+        this.searchModel = searchModel;
+    }
   public List<BaseSearchField> getSearchFields() {
     return searchFields;
   }
