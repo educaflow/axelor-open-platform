@@ -330,7 +330,7 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
       overflow="auto"
       flexGrow={1}
     >
-      <Box w={100}>
+      <Box w={100} h={100} display="grid" gridTemplateRows="auto 1fr" >
         {searchFormMeta && (
           <Box d="flex" m={2} border roundedTop>
             <DashboardSearch
@@ -344,24 +344,11 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
         )}
         <DashboardContext.Provider value={context}>
           {isReady && layouts && (
-            <GridLayout
-              isBounded={true}
-              isDraggable={hasViewCustomize}
+            <Box
               className={styles.layout}
-              layouts={layouts}
-              rowHeight={CARD_HEIGHT}
-              resizeHandles={["se"]}
-              breakpoints={BREAKPOINTS}
-              cols={COLS}
-              draggableHandle={`.${dashletStyles.header}`}
-              onLayoutChange={handleLayoutChange}
-              onDragStart={handleDragStart}
-              onDragStop={handleDragStop}
-              onResizeStart={handleInit}
-              onResizeStop={handleResize}
             >
               {children}
-            </GridLayout>
+            </Box>
           )}
         </DashboardContext.Provider>
       </Box>
