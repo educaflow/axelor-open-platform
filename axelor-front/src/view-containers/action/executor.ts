@@ -105,6 +105,15 @@ const processActionResult = (result: ActionResult[]): ActionResult[] => {
   ] as ActionResult[];
 };
 
+export async function executeWithoutQueue(task: () => Promise<any>) {
+  try {
+    queue.pause();
+    return await task();
+  } finally {
+    queue.resume();
+  }
+}
+
 export class DefaultActionExecutor implements ActionExecutor {
   #handler;
 
@@ -270,6 +279,10 @@ export class DefaultActionExecutor implements ActionExecutor {
       }
     }
     
+    if (options?.handle) {
+      await options?.handle(data);
+    }
+    
     if (data.exportFile) {
       const link = "ws/files/data-export";
       await download(link, data.exportFile);
@@ -288,7 +301,7 @@ export class DefaultActionExecutor implements ActionExecutor {
     }
 
     if (data.signal === "refresh-tab") {
-      const tabId = getActiveTabId();
+      const tabId = getActiveTabId(-1);
       const event = new CustomEvent("tab:refresh", { detail: { id: tabId } });
       document.dispatchEvent(event);
     }
@@ -499,7 +512,11 @@ export class DefaultActionExecutor implements ActionExecutor {
       ...view,
     };
 
-    if (this.#handler.refresh && tab.params?.popup && getActivePopups().length === 0) {
+    if (
+      this.#handler.refresh &&
+      tab.params?.popup &&
+      getActivePopups().length === 0
+    ) {
       tab.params = {
         ...tab.params,
         __onPopupReload: () => this.#handler.refresh(),

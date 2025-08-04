@@ -38,17 +38,15 @@ import { focusAtom } from "@/utils/atoms";
 import { Formatters } from "@/utils/format";
 import { findViewItem } from "@/utils/schema";
 import { isAdvancedSearchView } from "@/view-containers/advance-search/utils";
-import {
-  usePopupHandlerAtom,
-  useSetPopupHandlers,
-} from "@/view-containers/view-popup/handler";
+import { useSetPopupHandlers } from "@/view-containers/view-popup/handler";
 import { ViewToolBar } from "@/view-containers/view-toolbar";
 import {
   useSelectViewState,
+  useSetViewProps,
   useViewAction,
   useViewConfirmDirty,
   useViewDirtyAtom,
-  useViewProps,
+  useViewProp,
   useViewRoute,
   useViewSwitch,
   useViewTab,
@@ -84,7 +82,7 @@ import {
   resetFormDummyFieldsState,
 } from "./builder/utils";
 import { Collaboration } from "./widgets/collaboration";
-import { isUndefined, isBoolean } from "@/utils/types";
+import { isUndefined, isBoolean, isNil } from "@/utils/types";
 
 import styles from "./form.module.scss";
 
@@ -216,6 +214,38 @@ export const usePrepareSaveRecord = (
   );
 };
 
+export const restoreSelectedStateWithSavedRecord = (
+  formState: FormState,
+  savedRecord: DataRecord,
+) => {
+  if (formState.statesByName) {
+    let statesByName = formState.statesByName;
+    for (const [key, value] of Object.entries(statesByName)) {
+      const list = savedRecord[key];
+      if (
+        Array.isArray(list) &&
+        list.some((x) => x.cid && x.cid !== x.id) &&
+        value?.selected?.length
+      ) {
+        statesByName = {
+          ...statesByName,
+          [key]: {
+            ...value,
+            selected: value.selected
+              .map((id) => {
+                const found = list.find((x) => x.cid === id);
+                return found ? found.id : id;
+              })
+              .filter(Boolean),
+          },
+        };
+      }
+    }
+    return { ...formState, statesByName };
+  }
+  return formState;
+};
+
 export const useHandleFocus = (containerRef: RefObject<HTMLDivElement>) => {
   const handleFocus = useCallback(() => {
     const elem = containerRef.current;
@@ -324,15 +354,11 @@ export function Form(props: ViewProps<FormView>) {
   const { meta, dataStore } = props;
 
   const { id } = useViewRoute();
-  const [viewProps = {}] = useViewProps();
   const { action } = useViewTab();
   const recordRef = useRef<DataRecord | null>(null);
 
   const { params } = action;
   const recordId = String(id || "");
-  const readonly =
-    !params?.forceEdit &&
-    (params?.forceReadonly || (viewProps.readonly ?? Boolean(recordId)));
 
   const popupRecord = params?.["_popup-record"];
 
@@ -384,7 +410,6 @@ export function Form(props: ViewProps<FormView>) {
       isLoading={isLoading}
       record={record}
       recordRef={recordRef}
-      readonly={readonly}
       perms={perms}
     />
   );
@@ -398,11 +423,9 @@ const FormContainer = memo(function FormContainer({
   searchAtom,
   isLoading,
   perms,
-  ...props
 }: ViewProps<FormView> & {
   record: DataRecord;
   recordRef: MutableRefObject<DataRecord | null>;
-  readonly?: boolean;
   isLoading?: boolean;
   perms?: Perms;
 }) {
@@ -423,7 +446,10 @@ const FormContainer = memo(function FormContainer({
     action,
     state: tabAtom,
   } = useViewTab();
-  const [viewProps, setViewProps] = useViewProps();
+  const setViewProps = useSetViewProps();
+  const readonlyViewProp = useViewProp<boolean>("readonly");
+  const dataStoreViewProp = useViewProp<DataStore>("dataStore");
+
   const { formAtom, actionHandler, recordHandler, actionExecutor } =
     useFormHandlers(meta, defaultRecord, {
       context: action?.context,
@@ -491,9 +517,28 @@ const FormContainer = memo(function FormContainer({
   const hasSave = hasButton("save") || canSaveNew;
 
   const readonly = useMemo(() => {
-    const readonly = readonlyExclusive || (attrs.readonly ?? props.readonly);
-    return !readonly && !hasEdit ? true : readonly;
-  }, [readonlyExclusive, attrs.readonly, props.readonly, hasEdit]);
+    // from perms or dynamic js attributes (readonlyIf, canEdit, ...)
+    if (readonlyExclusive || !hasEdit) {
+      return true;
+    }
+    // from attrs, ie edit/back toolbar buttons
+    if (!isNil(attrs.readonly)) {
+      return attrs.readonly;
+    }
+    // forceEdit action params
+    if (action.params?.forceEdit) {
+      return false;
+    }
+    // else based on tab readonly state, else on record id
+    return readonlyViewProp ?? Boolean(record.id);
+  }, [
+    readonlyExclusive,
+    attrs.readonly,
+    hasEdit,
+    action.params,
+    readonlyViewProp,
+    record.id,
+  ]);
 
   const prevType = useSelectViewState(
     useCallback((state) => state.prevType, []),
@@ -819,6 +864,10 @@ const FormContainer = memo(function FormContainer({
           select,
         });
 
+        set(formAtom, (state) =>
+          restoreSelectedStateWithSavedRecord(state, res),
+        );
+
         if (callOnRead) {
           const fetched = res.id ? await doRead(res.id, select) : res;
 
@@ -1093,11 +1142,10 @@ const FormContainer = memo(function FormContainer({
   );
 
   const pagination = usePagination(
-    viewProps?.dataStore ?? dataStore,
+    dataStoreViewProp ?? dataStore,
     record,
     readonly,
   );
-  const popupHandlerAtom = usePopupHandlerAtom();
   const setPopupHandlers = useSetPopupHandlers();
 
   const showToolbar = popupOptions?.showToolbar !== false;
@@ -1158,7 +1206,7 @@ const FormContainer = memo(function FormContainer({
   }, [formDirty, setDirty]);
 
   useEffect(() => {
-    setViewProps((props) => ({ ...props, readonly }));
+    setViewProps({ displayMode: readonly ? "read" : "edit" });
   }, [readonly, setViewProps]);
 
   const tab = useViewTab();
@@ -1696,6 +1744,7 @@ function fillRecordWithCid(savedRecord: DataRecord, fetchedRecord: DataRecord) {
           {} as DataRecord,
         ),
         ...(prev.cid && {
+          selected: prev.selected,
           cid: prev.cid,
         }),
       };
