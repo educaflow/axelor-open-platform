@@ -102,6 +102,9 @@ export function ManyToOne(
   const isRefLink = schema.widget === "ref-link";
   const readonly = _readonly || !canRead;
 
+  const showFormView =  typeof formView === "string" && formView.trim() !== ""
+  const showGridView =  typeof gridView === "string" && gridView.trim() !== ""
+  
   const isPermitted = usePermitted(target, perms);
 
   const handleEdit = useCallback(
@@ -280,9 +283,9 @@ export function ManyToOne(
     if (target) {
       if (canEdit && canView) result.push(edit);
       if (isSuggestBox) return result;
-      if (!canEdit && canView) result.push(view);
+      if (!canEdit && canView && showFormView) result.push(view);
       if (canNew) result.push(add);
-      if (canSelect) result.push(find);
+      if (canSelect && showGridView) result.push(find);
     }
 
     return result;
@@ -329,7 +332,7 @@ export function ManyToOne(
   return (
     <FieldControl {...props}>
       {readonly &&
-        (value && hasButton("view") ? (
+        (value && hasButton("view") && showFormView? (
           <ViewerLink onClick={handleView}>
             <RelationalValue schema={schema} value={value} />
           </ViewerLink>
