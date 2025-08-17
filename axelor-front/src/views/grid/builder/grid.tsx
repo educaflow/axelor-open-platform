@@ -437,21 +437,12 @@ export const Grid = forwardRef<
       const action=view.action;
       const signal = view.actionSignal ? view.actionSignal : view.name;
       
-      if (action && actionExecutor) {
-          handleRowDoubleClickActionId(row, action, signal ?? "", actionExecutor);
-      } else {
+      if (!(action && actionExecutor)) {
         onView?.(row.record);
       }
     },
     [onView,actionExecutor,view],
   );
-
-  const handleNone = useCallback(
-    (e: React.SyntheticEvent, row: GridRow, rowIndex: number) => {
-
-    },
-    [onView],
-  ); 
   
   async function handleRowDoubleClickActionId(row: GridRow,action:string,signal:string, actionExecutor: ActionExecutor) {
     const record=row.record;
@@ -726,7 +717,7 @@ export const Grid = forwardRef<
             ...detailsProps,
           })}
           onCellClick={handleCellClick}
-          onRowDoubleClick={handleNone}
+          onRowDoubleClick={handleRowDoubleClick}
           sortHandler={sortHandler}
           state={state!}
           setState={setState!}
