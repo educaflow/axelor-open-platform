@@ -413,17 +413,23 @@ export const Grid = forwardRef<
       colIndex: number,
       row: GridRow,
     ) => {
+      const action=view.action;
+      const signal = view.actionSignal ? view.actionSignal : view.name;
+
+
       if (col.name === "$$new") {
         onNew?.(row.record);
       } else if (col.name === "$$edit") {
         onEdit?.(row.record);
       } else if (col.name === "$$delete") {
         onDelete?.([row.record]);
+      } else if (action && actionExecutor) {
+        handleRowDoubleClickActionId(row, action, signal ?? "", actionExecutor);
       } else if (isMobile) {
         onView?.(row.record);
       }
     },
-    [isMobile, onNew, onEdit, onView, onDelete],
+    [isMobile, onNew, onEdit, onView, onDelete,actionExecutor,view],
   );
 
   const handleRowDoubleClick = useCallback(
@@ -440,6 +446,13 @@ export const Grid = forwardRef<
     [onView,actionExecutor,view],
   );
 
+  const handleNone = useCallback(
+    (e: React.SyntheticEvent, row: GridRow, rowIndex: number) => {
+
+    },
+    [onView],
+  ); 
+  
   async function handleRowDoubleClickActionId(row: GridRow,action:string,signal:string, actionExecutor: ActionExecutor) {
     const record=row.record;
     await actionExecutor.waitFor();
@@ -713,7 +726,7 @@ export const Grid = forwardRef<
             ...detailsProps,
           })}
           onCellClick={handleCellClick}
-          onRowDoubleClick={handleRowDoubleClick}
+          onRowDoubleClick={handleNone}
           sortHandler={sortHandler}
           state={state!}
           setState={setState!}
