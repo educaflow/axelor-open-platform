@@ -2123,7 +2123,12 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-
+        <xsd:attribute name="canBackOnSave" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Si al hacer el save se hace un back para volver a la página anterior.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attributeGroup ref="tns:LayoutContainerAttrs" />
       </xsd:extension>
     </xsd:complexContent>

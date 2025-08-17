@@ -36,7 +36,8 @@ export const DEFAULT_ATTRS = {
   canSelect: undefined as unknown as boolean,
   canCancel: undefined as unknown as boolean,
   canBack: undefined as unknown as boolean,
-  canMore: undefined as unknown as boolean
+  canMore: undefined as unknown as boolean,
+  canBackOnSave: undefined as unknown as boolean
 };
 
 export type Attrs = Partial<typeof DEFAULT_ATTRS> & {

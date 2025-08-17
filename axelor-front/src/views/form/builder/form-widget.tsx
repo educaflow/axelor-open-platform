@@ -447,7 +447,8 @@ function useExpressions({
       valueExpr,
       canCancel,
       canBack,
-      canMore
+      canMore,
+      canBackOnSave
     } = schema;
 
     const bind = schema.jsonField && valueExpr ? valueExpr : schema.bind;
@@ -472,6 +473,7 @@ function useExpressions({
       isExpr(canAttach) ||
       isExpr(canBack) ||
       isExpr(canMore) ||
+      isExpr(canBackOnSave) ||
       isExpr(canCancel) ||
       isExpr(canSelect);
 
@@ -505,6 +507,7 @@ function useExpressions({
         if (isExpr(canBack)) handleIf("canBack", canBack);
         if (isExpr(canCancel)) handleIf("canCancel", canCancel);
         if (isExpr(canMore)) handleIf("canMore", canMore);
+        if (isExpr(canBackOnSave)) handleIf("canBackOnSave", canBackOnSave);
         if (isExpr(canSelect)) handleIf("canSelect", canSelect);
       });
     }

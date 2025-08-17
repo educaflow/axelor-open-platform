@@ -287,7 +287,8 @@ export const useFormPerms = (
       "canArchive",
       "canCancel",
       "canBack",
-      "canMore"
+      "canMore",
+      "canBackOnSave"
     ],
     [],
   );
@@ -910,16 +911,21 @@ const FormContainer = memo(function FormContainer({
       [actionExecutor, doSave],
     ),
   );
-
+  const canBackOnSave = hasButton("canBackOnSave");
   const handleOnSave = useCallback(async () => {
     try {
       await onSave({
         handleErrors: true,
       });
+      if (canBackOnSave) {
+        if (prevType) {
+          switchTo(prevType);
+        }
+      }
     } catch (error) {
       // default handler will show the errors
     }
-  }, [onSave]);
+  }, [onSave,prevType, switchTo,canBackOnSave]);
 
   const reload = useAtomCallback(
     useCallback(
