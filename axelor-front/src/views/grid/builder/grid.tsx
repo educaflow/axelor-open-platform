@@ -427,6 +427,8 @@ export const Grid = forwardRef<
         handleRowDoubleClickActionId(row, action, signal ?? "", actionExecutor);
       } else if (isMobile) {
         onView?.(row.record);
+      } else if (view.canViewOnClick) {
+        onView?.(row.record);
       }
     },
     [isMobile, onNew, onEdit, onView, onDelete,actionExecutor,view],

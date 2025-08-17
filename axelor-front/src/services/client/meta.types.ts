@@ -546,6 +546,7 @@ export interface GridView extends View {
   onSave?: string;
   action?: string;
   actionSignal?: string;
+  canViewOnClick?: boolean;
   treeLimit?: number;
   treeField?: string;
   treeFieldTitle?: string;

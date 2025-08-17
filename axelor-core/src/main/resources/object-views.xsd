@@ -1548,6 +1548,12 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="canViewOnClick" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>Si al hacer un click en el grid se muestra el detalle
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
 
         <xsd:attribute name="onDelete" type="xsd:string">
           <xsd:annotation>
