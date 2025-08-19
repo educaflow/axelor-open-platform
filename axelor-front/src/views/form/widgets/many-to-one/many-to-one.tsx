@@ -88,7 +88,11 @@ export function ManyToOne(
         const rec = removeVersion(changedValue);
         setValue(rec, true, rec.id !== value?.id);
       } else {
-        setValue(changedValue, true);
+        if (changedValue===undefined) {
+          setValue(null, true);
+        } else {
+          setValue(changedValue, true);
+        }
       }
     },
     [setValue, value],
