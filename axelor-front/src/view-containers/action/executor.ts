@@ -261,16 +261,16 @@ export class DefaultActionExecutor implements ActionExecutor {
 
   async #handle(data: ActionResult, options?: ActionOptions) {
     
-    if(data.executeJs) {
+    if(data.executeJs || (data?.values?.executeJs)) {
       const context = this.#handler.getContext();
-      const jsAction = data.methodJs;
+      const jsAction = data.methodJs || data?.values?.methodJs;
       if (jsAction) {
         try {
           const func = (globalThis as any)[jsAction];
           if(typeof func !== 'function') {
             throw new Error(`JS method '${jsAction}' is not a valid function`);
           }
-          await func(context, data.payload);
+          await func(context, data.payload || data?.values?.payload);
           await this.#handler.setValues(context);
         } catch (e) {
           console.error("Error executing JS action:", e);
