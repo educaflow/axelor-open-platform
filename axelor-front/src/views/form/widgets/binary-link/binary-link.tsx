@@ -78,7 +78,7 @@ export function BinaryLink(props: FieldProps<DataRecord | undefined | null>) {
     inputRef.current && (inputRef.current.value = "");
 
     if (file && validateFileSize(file)) {
-      const dataStore = new DataStore(META_FILE_MODEL);
+      const dataStore = new DataStore(schema.target || META_FILE_MODEL);
       const metaFile = await dataStore.save({
         id: value?.id,
         version: value?.version ?? value?.$version,

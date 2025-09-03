@@ -411,7 +411,7 @@ public class RestService extends ResourceService {
 
     final InputPart filePart = formData.get("file").get(0);
     final InputPart fieldPart = formData.get("field").get(0);
-    final boolean isAttachment = MetaFile.class.getName().equals(getModel());
+    final boolean isAttachment = MetaFile.class.isAssignableFrom(entityClass());
     final String field = fieldPart.getBodyAsString();
     final InputStream fileStream = filePart.getBody(InputStream.class, null);
 
@@ -423,10 +423,10 @@ public class RestService extends ResourceService {
     }
 
     data.put("fileName", safeFileName);
-
+    final Class<? extends MetaFile> metaFileClass = (Class<? extends MetaFile>) entityClass();
     final MetaFiles files = Beans.get(MetaFiles.class);
-    final MetaFileRepository repo = Beans.get(MetaFileRepository.class);
-    final MetaFile metaFile = Mapper.toBean(MetaFile.class, data);
+    final JpaRepository<? extends MetaFile> repo = JpaRepository.of(metaFileClass);
+    final MetaFile metaFile = Mapper.toBean(metaFileClass, data);
 
     MetaFile entity = metaFile;
     if (metaFile.getId() != null) {
