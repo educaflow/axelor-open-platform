@@ -20,7 +20,7 @@ import { useMessagePopup } from "./message-form";
 import styles from "./message-input.module.scss";
 
 function TextareaAutoSizeInput(props: any) {
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { value } = props;
 
   useLayoutEffect(() => {
@@ -113,8 +113,8 @@ export function MessageInput({
 
   async function handleEdit() {
     showMessagePopup({
-      title: i18n.get("Email"),
-      yesTitle: i18n.get("Send"),
+      title: i18n.get("Comment"),
+      yesTitle: i18n.get("Add"),
       record: { body: value, files } as Message,
       onSave: handleSave,
       showRecipients: false,

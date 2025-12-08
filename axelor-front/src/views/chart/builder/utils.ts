@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import Color from "color";
 import difference from "lodash/difference";
 import filter from "lodash/filter";
@@ -506,17 +507,23 @@ export function getScale(data: ChartView, dataset: ChartDataRecord[]) {
   return scale;
 }
 
-export function applyTitles(draft: any, data: any) {
+export function applyTitles(
+  draft: any,
+  data: any,
+  options: { xAxis?: any; yAxis?: any } = {},
+) {
   if (data.xTitle && draft.xAxis) {
     draft.xAxis.name = data.xTitle;
     draft.xAxis.nameLocation = "middle";
     draft.xAxis.nameGap = 25;
+    Object.assign(draft.xAxis, options.xAxis);
   }
   const [series] = data.series || [];
   if (series && series.title) {
     draft.yAxis.name = series.title;
     draft.yAxis.nameLocation = "middle";
-    draft.yAxis.nameGap = 50;
+    draft.yAxis.nameGap = 60;
+    Object.assign(draft.yAxis, options.yAxis);
   }
 }
 
@@ -532,18 +539,24 @@ export function PlusData(data: any) {
   const result = map(
     groupCollectionBy(dataset, xAxis),
     (group: any[], name: string) => {
-      let value = 0;
+      let value: number | string = 0;
       forEach(group, (item) => {
-        value += $conv(item[series.key]);
+        const val = $conv(item[series.key]);
+        if (Number.isNaN(Number(val))) {
+          value = val;
+        } else {
+          value += val;
+        }
       });
       if (!series.groupBy && xAxis) series.groupBy = xAxis;
       const groupBars = series.groupBy
         ? group.reduce(
             (attrs, rec) => ({
               ...attrs,
-              [rec[series.groupBy]]: isNaN(rec[series.key])
+              [rec[series.groupBy]]: Number.isNaN(Number(rec[series.key]))
                 ? rec[series.key]
-                : Number(rec[series.key]),
+                : Number(attrs[rec[series.groupBy]] ?? 0) +
+                  Number(rec[series.key]),
             }),
             {},
           )
@@ -681,5 +694,21 @@ export function prepareTheme(type: ChartType) {
         crossStyle: { color, width: "1" },
       },
     },
+    label: { color },
+    emphasis: {
+      label: { color }
+    }
   };
+}
+
+export function useIsDiscrete(chartView?: ChartView) {
+  return (
+    useMemo(
+      () =>
+        chartView?.series?.some(
+          (item) => !item.groupBy || item.groupBy === chartView.xAxis,
+        ),
+      [chartView],
+    ) ?? false
+  );
 }

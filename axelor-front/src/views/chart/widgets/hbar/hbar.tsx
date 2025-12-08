@@ -2,7 +2,7 @@ import { produce } from "immer";
 import { useEffect, useState } from "react";
 
 import { ChartGroupType, ChartProps, ECharts } from "../../builder";
-import { PlusData, applyTitles } from "../../builder/utils";
+import { PlusData, applyTitles, useIsDiscrete } from "../../builder/utils";
 import { BarGroup } from "../bar/bar-group";
 
 const defaultOption = {
@@ -16,14 +16,15 @@ const defaultOption = {
     source: [],
   },
   xAxis: { axisLine: { show: true } },
-  yAxis: { type: "category" },
+  yAxis: { type: "category", inverse: true },
   series: [],
 };
 
 export function Hbar(props: ChartProps) {
   const { data } = props;
+  const isDiscrete = useIsDiscrete(data);
   const [type, setType] = useState<ChartGroupType>(
-    data.stacked ? "stack" : "group"
+    data.stacked ? "stack" : "group",
   );
   const [options, setOptions] = useState(defaultOption);
 
@@ -31,21 +32,41 @@ export function Hbar(props: ChartProps) {
     const { types: dimensions, data: source, formatter } = PlusData(data);
     setOptions(
       produce((draft: any) => {
-        applyTitles(draft, data);
+        applyTitles(draft, data, {
+          yAxis: { nameGap: 85 },
+        });
         draft.series = dimensions.map((key) => ({
           type: "bar",
-          stack: type === "stack" ? "all" : `${key}`,
+          stack: isDiscrete || type === "stack" ? "all" : `${key}`,
+          ...(isDiscrete && {
+            label: {
+              show: true,
+              position: "right",
+              formatter: (params: any) =>
+                formatter(
+                  params.value[params.dimensionNames[params.encode.x[0]]],
+                ),
+            },
+            labelLayout: {
+              hideOverlap: true,
+            },
+          }),
         }));
+        draft.yAxis.axisLabel = {
+          ...draft.yAxis.axisLabel,
+          overflow: "truncate",
+          width: 75,
+        };
         draft.dataset.dimensions = ["x", ...dimensions];
         draft.dataset.source = source;
         draft.tooltip.valueFormatter = formatter;
-      })
+      }),
     );
-  }, [type, data]);
+  }, [type, data, isDiscrete]);
 
   return (
     <>
-      <BarGroup value={type} onChange={setType} />
+      {!isDiscrete && <BarGroup value={type} onChange={setType} />}
       <ECharts options={options} {...(props as any)} />
     </>
   );

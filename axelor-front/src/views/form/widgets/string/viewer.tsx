@@ -1,5 +1,5 @@
 import { AdornedInput, Box, Button, clsx } from "@axelor/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
 
 import { useAfterActions } from "../../builder/scope";
 import styles from "./string.module.scss";
@@ -79,7 +79,6 @@ export function ViewerLink({
       alignSelf="start"
       textAlign="start"
       textDecoration="none"
-      overflow="hidden"
       onClick={onClick}
       tabIndex={-1}
       className={styles.viewer}

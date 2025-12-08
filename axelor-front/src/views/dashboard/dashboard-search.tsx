@@ -40,7 +40,7 @@ export function DashboardSearch({
   onInitCompleted?: () => void;
   searchModel?: string;
 }) {
-  const formRef = useRef<HTMLDivElement | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const record = useRef<DataRecord>({}).current;
   const { formAtom, actionHandler, actionExecutor, recordHandler } =

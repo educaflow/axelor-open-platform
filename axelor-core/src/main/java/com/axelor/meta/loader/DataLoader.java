@@ -21,6 +21,7 @@ package com.axelor.meta.loader;
 import com.axelor.common.FileUtils;
 import com.axelor.data.csv.CSVImporter;
 import com.axelor.data.xml.XMLImporter;
+import com.axelor.file.temp.TempFiles;
 import com.axelor.meta.MetaScanner;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
@@ -34,16 +35,20 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.net.URI;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.inject.Singleton;
-import javax.xml.parsers.DocumentBuilderFactory;
-
+import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+
 
 @Singleton
 class DataLoader extends AbstractLoader {
@@ -66,6 +71,10 @@ class DataLoader extends AbstractLoader {
     for (File tmp : directoriosTemporales) {
 
       try {
+        if (tmp == null) {
+          return;
+        }
+
         File config = FileUtils.getFile(tmp, getDirName(), INPUT_CONFIG_NAME);
         if (isConfig(config, patCsv)) {
           importCsv(config);
@@ -78,7 +87,6 @@ class DataLoader extends AbstractLoader {
       } finally {
         clean(tmp);
       }
-
     }
   }
 
@@ -115,16 +123,16 @@ class DataLoader extends AbstractLoader {
     return DATA_DIR_NAME;
   }
 
-  private List<File> extract(Module module) {
+  private List<File> extract(Module module)  {
     try {
       final String dirName = this.getDirName();
-
       final List<URL> allDirectories = MetaScanner.findAll(module.getName(), dirName, "(.+?)");
+
       Set<String> directorios = new HashSet<>();
       for (URL file : allDirectories) {
-          String name = (new URI(file.toExternalForm())).normalize().toURL().toExternalForm();
-          name = name.substring(0,name.lastIndexOf(dirName)+ dirName.length());
-          directorios.add(name);
+        String name = (new URI(file.toExternalForm())).normalize().toURL().toExternalForm();
+        name = name.substring(0,name.lastIndexOf(dirName)+ dirName.length());
+        directorios.add(name);
       }
 
       final List<File> directoriosTemporales = new ArrayList<>();
@@ -132,7 +140,7 @@ class DataLoader extends AbstractLoader {
       for (String directorio : directorios) {
         final List<URL> files = MetaScanner.findAll(module.getName(), dirName, "(.+?)");
 
-        final File tmp = Files.createTempDir();
+        final File tmp = TempFiles.createTempDir().toFile();
 
 
         for (URL file : files) {
@@ -171,15 +179,15 @@ class DataLoader extends AbstractLoader {
   private void copy(InputStream in, File toDir, String name) throws IOException {
     File dst = FileUtils.getFile(toDir, name);
     Files.createParentDirs(dst);
-    OutputStream out = new FileOutputStream(dst);
-    try {
-      ByteStreams.copy(in, out);
-    } finally {
-      out.close();
+    try (OutputStream out = new FileOutputStream(dst)) {
+      in.transferTo(out);
     }
   }
 
   private void clean(File file) {
+    if (file == null) {
+      return;
+    }
     if (file.isDirectory()) {
       for (File child : file.listFiles()) {
         clean(child);

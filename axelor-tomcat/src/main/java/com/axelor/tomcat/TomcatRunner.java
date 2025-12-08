@@ -1,26 +1,12 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.tomcat;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,40 +14,48 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
-public class TomcatRunner {
+@Command(name = "tomcat-runner", mixinStandardHelpOptions = true)
+public class TomcatRunner implements Runnable {
 
-  private static final String OPTION_HELP = "help";
-  private static final String OPTION_PORT = "port";
-  private static final String OPTION_BASE = "base-dir";
-  private static final String OPTION_CONTEXT = "context-path";
-  private static final String OPTION_CLASSES = "extra-classes";
-  private static final String OPTION_LIBS = "extra-libs";
-  private static final String OPTION_CONFIG = "config";
+  @Parameters private List<Path> webapps = new ArrayList<>();
 
-  private static Option addOption(Options options, String name, String argName, String desc) {
-    final Option option = Option.builder().longOpt(name).desc(desc).build();
-    if (argName != null) {
-      option.setArgName(argName);
-      option.setArgs(1);
-    }
-    options.addOption(option);
-    return option;
-  }
+  @Option(names = "--base-dir", description = "The tomcat base directory.")
+  private Path baseDir;
 
-  private static void usage(Options options) {
-    final HelpFormatter formatter = new HelpFormatter();
-    formatter.setOptionComparator(null);
-    formatter.printHelp("tomcat-runner [options] <WEBAPP>", options);
-  }
+  @Option(names = "--options-from", description = "The options config file.")
+  private Path config;
+
+  @Option(names = "--context-path", description = "The webapp context path.")
+  private String contextPath;
+
+  @Option(names = "--proxy-url", description = "Set proxy URL if running behind a reverse proxy")
+  private URI proxyUrl;
+
+  @Option(names = "--max-threads", description = "Set the maximum number of worker threads.")
+  private int maxThreads;
+
+  @Option(names = "--cache-max-size", description = "Set the maximum cache size for resources.")
+  private int cacheMaxSize;
+
+  @Option(
+      names = "--extra-classes",
+      split = ",",
+      description = "Specify additional classes directories.")
+  private List<Path> extraClasses;
+
+  @Option(names = "--extra-libs", split = ",", description = "Specify additional libraries.")
+  private List<Path> extraLibs;
+
+  @Option(names = "--port", description = "The tomcat port number.", defaultValue = "8080")
+  private Integer port;
 
   private static List<String> getList(Properties props, String key) {
     String value = props.getProperty(key, "");
@@ -74,69 +68,49 @@ public class TomcatRunner {
         .collect(Collectors.toList());
   }
 
-  public static void main(String[] args) {
-    final Options options = new Options();
-    final CommandLineParser parser = new DefaultParser();
-    final CommandLine cli;
-
-    addOption(options, OPTION_HELP, null, "Show this help");
-    addOption(options, OPTION_PORT, "NUMBER", "The tomcat server port.");
-    addOption(options, OPTION_CONTEXT, "PATH", "The context path to use for the app.");
-    addOption(options, OPTION_BASE, "DIR", "The tomcat server base directory.");
-    addOption(options, OPTION_CLASSES, "DIR,...", "The list of extra classes dirs.");
-    addOption(options, OPTION_LIBS, "JAR,...", "The list of extra jar libs.");
-    addOption(options, OPTION_CONFIG, "FILE", "The config file.");
-
-    try {
-      cli = parser.parse(options, args);
-    } catch (Exception e) {
-      usage(options);
-      return;
-    }
-
-    if (cli.hasOption(OPTION_HELP)) {
-      usage(options);
-      return;
-    }
-
+  @Override
+  public void run() {
     final Properties props = new Properties();
 
-    if (cli.hasOption(OPTION_CONFIG)) {
-      File config = new File(cli.getOptionValue(OPTION_CONFIG));
-      try (FileInputStream is = new FileInputStream(config)) {
+    if (config != null) {
+      try (FileInputStream is = new FileInputStream(config.toFile())) {
         props.load(is);
       } catch (IOException e) {
         System.err.println("invalid config file: " + config);
       }
     }
 
-    final List<Path> webapps = new ArrayList<>();
+    final List<Path> webapps = new ArrayList<>(this.webapps);
 
-    cli.getArgList().stream().map(Paths::get).forEach(webapps::add);
     getList(props, "webapps").stream().map(Paths::get).forEach(webapps::add);
 
     if (webapps.isEmpty()) {
-      usage(options);
+      System.err.println("No webapp specified.");
       return;
     }
 
     final TomcatOptions settings = new TomcatOptions(webapps);
 
+    settings.setProxyUrl(proxyUrl);
+    settings.setMaxThreads(maxThreads);
+    if (cacheMaxSize > 0) {
+      settings.setCacheMaxSize(cacheMaxSize);
+    }
+
     settings.setContextPath(
-        cli.getOptionValue(OPTION_CONTEXT, props.getProperty("contextPath", "/")));
+        Optional.ofNullable(contextPath).orElse(props.getProperty("contextPath", "")));
 
     try {
       settings.setPort(
-          Integer.parseInt(cli.getOptionValue(OPTION_PORT, props.getProperty("port", "8080"))));
+          Optional.ofNullable(port)
+              .orElseGet(() -> Integer.parseInt(props.getProperty("port", "8080"))));
     } catch (NumberFormatException e) {
       System.err.println("Invalid port.");
       return;
     }
 
-    Path baseDir = null;
-    if (cli.hasOption(OPTION_BASE)) {
-      baseDir = Paths.get(cli.getOptionValue(OPTION_BASE));
-    } else if (props.containsKey("baseDir")) {
+    Path baseDir = this.baseDir;
+    if (baseDir == null && props.containsKey("baseDir")) {
       baseDir = Paths.get(props.getProperty("baseDir"));
     }
     if (baseDir != null) {
@@ -147,27 +121,18 @@ public class TomcatRunner {
       settings.setBaseDir(baseDir);
     }
 
-    if (cli.hasOption(OPTION_CLASSES)) {
-      Arrays.stream(cli.getOptionValues(OPTION_CLASSES))
-          .flatMap(value -> Arrays.stream(value.split(",")))
-          .map(String::trim)
-          .map(Paths::get)
-          .forEach(settings::addClasses);
-    }
+    if (extraClasses != null) extraClasses.forEach(settings::addClasses);
+    if (extraLibs != null) extraLibs.forEach(settings::addLib);
 
     getList(props, "extraClasses").stream().map(Paths::get).forEach(settings::addClasses);
-
-    if (cli.hasOption(OPTION_LIBS)) {
-      Arrays.stream(cli.getOptionValues(OPTION_LIBS))
-          .flatMap(value -> Arrays.stream(value.split(",")))
-          .map(String::trim)
-          .map(Paths::get)
-          .forEach(settings::addLib);
-    }
-
     getList(props, "extraLibs").stream().map(Paths::get).forEach(settings::addLib);
 
-    final TomcatServer server = new TomcatServer(settings);
-    server.start();
+    new TomcatServer(settings).start();
+  }
+
+  public static void main(String[] args) {
+    TomcatRunner runner = new TomcatRunner();
+    CommandLine cli = new CommandLine(runner);
+    System.exit(cli.execute(args));
   }
 }

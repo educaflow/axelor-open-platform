@@ -435,7 +435,7 @@ export interface JsonField extends Omit<Field, "type"> {
   contextFieldTargetName?: string;
   contextFieldValue?: string;
   contextFieldTitle?: string;
-  
+
   forceHidden?: boolean;
 }
 
@@ -783,7 +783,6 @@ export type AdvancedSearchAtom = PrimitiveAtom<AdvancedSearchState>;
 export interface SavedFilter {
   id: number;
   version?: number;
-  name: string;
   title: string;
   shared: boolean;
   user?: DataRecord;

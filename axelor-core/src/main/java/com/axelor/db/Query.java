@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.db;
 
@@ -32,7 +18,9 @@ import com.axelor.rpc.Resource;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.FlushModeType;
+import jakarta.persistence.TypedQuery;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,10 +40,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.persistence.EntityManager;
-import javax.persistence.FlushModeType;
-import javax.persistence.TypedQuery;
-import org.hibernate.jpa.QueryHints;
 
 /**
  * The {@code Query} class allows filtering and fetching records quickly.
@@ -105,7 +89,7 @@ public class Query<T extends Model> {
   }
 
   public static <T extends Model> Query<T> of(Class<T> klass) {
-    return new Query<T>(klass);
+    return new Query<>(klass);
   }
 
   protected EntityManager em() {
@@ -231,7 +215,7 @@ public class Query<T extends Model> {
    * @return the same query instance
    */
   public Query<T> order(String spec) {
-    if (orderBy.length() > 0) {
+    if (!orderBy.isEmpty()) {
       orderBy += ", ";
     } else {
       orderBy = " ORDER BY ";
@@ -390,7 +374,6 @@ public class Query<T extends Model> {
 
   private TypedQuery<T> fetchQuery(int limit, int offset) {
     final TypedQuery<T> query = em().createQuery(selectQuery(), beanClass);
-    query.setHint(QueryHints.HINT_PASS_DISTINCT_THROUGH, false);
     if (limit > 0) {
       query.setMaxResults(limit);
     }
@@ -422,7 +405,7 @@ public class Query<T extends Model> {
    */
   public T fetchOne(int offset) {
     List<T> resultList = fetch(1, offset);
-    return resultList == null || resultList.isEmpty() ? null : resultList.get(0);
+    return resultList == null || resultList.isEmpty() ? null : resultList.getFirst();
   }
 
   /**
@@ -432,7 +415,6 @@ public class Query<T extends Model> {
    */
   public long count() {
     final TypedQuery<Long> query = em().createQuery(countQuery(), Long.class);
-    query.setHint(QueryHints.HINT_PASS_DISTINCT_THROUGH, false);
     this.bind(query).setCacheable(cacheable).setFlushMode(flushMode).setReadOnly();
     return query.getSingleResult();
   }
@@ -540,7 +522,7 @@ public class Query<T extends Model> {
     int limit = 1000;
 
     TypedQuery<Long> sq = em().createQuery(selectQuery, Long.class);
-    javax.persistence.Query uq = em().createQuery(updateQuery);
+    jakarta.persistence.Query uq = em().createQuery(updateQuery);
 
     QueryBinder.of(sq).bind(namedParams, this.params);
     QueryBinder.of(uq).bind(namedParams, this.params);
@@ -574,7 +556,7 @@ public class Query<T extends Model> {
    * Bulk delete all the matched records. <br>
    * <br>
    * This method uses <code>DELETE</code> query and performs {@link
-   * javax.persistence.Query#executeUpdate()}.
+   * jakarta.persistence.Query#executeUpdate()}.
    *
    * @see #remove()
    * @return total number of records affected.
@@ -585,7 +567,8 @@ public class Query<T extends Model> {
         updateQuery().replaceFirst("SELECT self", "SELECT self.id").replaceAll("\\bself", "that");
 
     if (notMySQL) {
-      javax.persistence.Query q = em().createQuery(deleteQuery("self.id IN (" + selectQuery + ")"));
+      jakarta.persistence.Query q =
+          em().createQuery(deleteQuery("self.id IN (" + selectQuery + ")"));
       this.bind(q);
       return q.executeUpdate();
     }
@@ -594,7 +577,7 @@ public class Query<T extends Model> {
     // support JOIN with DELETE query so we have to update in batch.
 
     TypedQuery<Long> sq = em().createQuery(selectQuery, Long.class);
-    javax.persistence.Query dq = em().createQuery(deleteQuery("self.id IN (:ids)"));
+    jakarta.persistence.Query dq = em().createQuery(deleteQuery("self.id IN (:ids)"));
 
     this.bind(sq);
     this.bind(dq);
@@ -625,7 +608,15 @@ public class Query<T extends Model> {
    * @return total number of records removed.
    */
   public long remove() {
-    return fetchStream().peek(JPA::remove).count();
+    try (final Stream<T> stream = fetchStream()) {
+      return stream
+          .map(
+              item -> {
+                JPA.remove(item);
+                return item;
+              })
+          .count();
+    }
   }
 
   protected String selectQuery(boolean update) {
@@ -634,7 +625,7 @@ public class Query<T extends Model> {
             .append(beanClass.getSimpleName())
             .append(" self")
             .append(joinHelper.toString(!update));
-    if (filter != null && filter.trim().length() > 0) sb.append(" WHERE ").append(filter);
+    if (filter != null && !filter.trim().isEmpty()) sb.append(" WHERE ").append(filter);
     if (update) {
       return sb.toString();
     }
@@ -656,14 +647,14 @@ public class Query<T extends Model> {
             .append(beanClass.getSimpleName())
             .append(" self")
             .append(joinHelper.toString(false));
-    if (filter != null && filter.trim().length() > 0) sb.append(" WHERE ").append(filter);
+    if (filter != null && !filter.trim().isEmpty()) sb.append(" WHERE ").append(filter);
     return joinHelper.fixSelect(sb.toString());
   }
 
   protected String updateQuery(Map<String, Object> values, boolean versioned, String filter) {
     final String items =
         values.keySet().stream()
-            .map(key -> String.format("self.%s = :%s", key, key))
+            .map(key -> "self.%s = :%s".formatted(key, key))
             .collect(Collectors.joining(", "));
 
     final StringBuilder sb =
@@ -690,7 +681,7 @@ public class Query<T extends Model> {
     return sb.toString();
   }
 
-  protected QueryBinder bind(javax.persistence.Query query) {
+  protected QueryBinder bind(jakarta.persistence.Query query) {
     return QueryBinder.of(query).bind(namedParams, params);
   }
 
@@ -703,7 +694,7 @@ public class Query<T extends Model> {
    */
   public Query<T> bind(Map<String, Object> params) {
     if (this.namedParams == null) {
-      this.namedParams = Maps.newHashMap();
+      this.namedParams = new HashMap<>();
     }
     if (params != null) {
       this.namedParams.putAll(params);
@@ -719,7 +710,7 @@ public class Query<T extends Model> {
    * @return the same instance
    */
   public Query<T> bind(String name, Object value) {
-    Map<String, Object> params = Maps.newHashMap();
+    Map<String, Object> params = new HashMap<>();
     params.put(name, value);
     return this.bind(params);
   }
@@ -749,12 +740,12 @@ public class Query<T extends Model> {
   public class Selector {
 
     private List<String> names = Lists.newArrayList("id", "version");
-    private List<String> collections = Lists.newArrayList();
+    private List<String> collections = new ArrayList<>();
     private String query;
     private Mapper mapper = Mapper.of(beanClass);
 
     private Selector(String... names) {
-      List<String> selects = Lists.newArrayList();
+      List<String> selects = new ArrayList<>();
       selects.add("self.id");
       selects.add("self.version");
       for (String name : names) {
@@ -800,7 +791,7 @@ public class Query<T extends Model> {
               .append(beanClass.getSimpleName())
               .append(" self")
               .append(joinHelper.toString(false));
-      if (filter != null && filter.trim().length() > 0) sb.append(" WHERE ").append(filter);
+      if (filter != null && !filter.trim().isEmpty()) sb.append(" WHERE ").append(filter);
       sb.append(orderBy);
       query = joinHelper.fixSelect(sb.toString());
     }
@@ -837,7 +828,7 @@ public class Query<T extends Model> {
 
     @SuppressWarnings("all")
     public List<List> values(int limit, int offset) {
-      javax.persistence.Query q = em().createQuery(query);
+      jakarta.persistence.Query q = em().createQuery(query);
       if (limit > 0) {
         q.setMaxResults(limit);
       }
@@ -857,10 +848,10 @@ public class Query<T extends Model> {
     public List<Map> fetch(int limit, int offset) {
 
       List<List> data = values(limit, offset);
-      List<Map> result = Lists.newArrayList();
+      List<Map> result = new ArrayList<>();
 
       for (List items : data) {
-        Map<String, Object> map = Maps.newHashMap();
+        Map<String, Object> map = new HashMap<>();
         for (int i = 0; i < names.size(); i++) {
           Object value = items.get(i);
           String name = names.get(i);
@@ -875,7 +866,7 @@ public class Query<T extends Model> {
           map.put(name, value);
         }
         if (collections.size() > 0) {
-          map.putAll(this.fetchCollections(items.get(0)));
+          map.putAll(this.fetchCollections(items.getFirst()));
         }
         result.add(map);
       }
@@ -887,7 +878,7 @@ public class Query<T extends Model> {
       if (items.get(at) == null && items.get(at + 1) == null) {
         return null;
       }
-      Map<String, Object> value = Maps.newHashMap();
+      Map<String, Object> value = new HashMap<>();
       String name = names.get(at);
       String nameField = names.get(at + 3).replace(name + ".", "");
 
@@ -900,12 +891,12 @@ public class Query<T extends Model> {
 
     @SuppressWarnings("all")
     private Map<String, List> fetchCollections(Object id) {
-      Map<String, List> result = Maps.newHashMap();
+      Map<String, List> result = new HashMap<>();
       Object self = JPA.em().find(beanClass, id);
       for (String name : collections) {
         Collection<Model> items = (Collection<Model>) mapper.get(self, name);
         if (items != null) {
-          List<Object> all = Lists.newArrayList();
+          List<Object> all = new ArrayList<>();
           for (Model obj : items) {
             all.add(Resource.toMapCompact(obj));
           }
@@ -1016,7 +1007,8 @@ public class Query<T extends Model> {
                 "could not resolve property: "
                     + item
                     + " of: "
-                    + currentMapper.getBeanClass().getName());
+                    + currentMapper.getBeanClass().getName(),
+                (String) null);
           }
 
           if (property.isJson()) {
@@ -1061,9 +1053,8 @@ public class Query<T extends Model> {
             property = currentMapper.getProperty(variable);
             if (property == null) {
               throw new IllegalArgumentException(
-                  String.format(
-                      "No such field '%s' in object '%s'",
-                      variable, currentMapper.getBeanClass().getName()));
+                  "No such field '%s' in object '%s'"
+                      .formatted(variable, currentMapper.getBeanClass().getName()));
             }
             if (property.isReference()) {
               joinOn = prefix + "." + variable;
@@ -1083,7 +1074,7 @@ public class Query<T extends Model> {
         Property property = mapper.getProperty(name);
         if (property == null) {
           throw new IllegalArgumentException(
-              String.format("No such field '%s' in object '%s'", variable, beanClass.getName()));
+              "No such field '%s' in object '%s'".formatted(variable, beanClass.getName()));
         }
         if (property.isCollection()) {
           return null;
@@ -1111,9 +1102,8 @@ public class Query<T extends Model> {
     }
 
     private String getTranslationJoin(String joinName, String from, String variable, String lang) {
-      return String.format(
-          "MetaTranslation %s ON %s.key = CONCAT('value:', %s.%s) AND %s.language = '%s'",
-          joinName, joinName, from, variable, joinName, lang);
+      return "MetaTranslation %s ON %s.key = CONCAT('value:', %s.%s) AND %s.language = '%s'"
+          .formatted(joinName, joinName, from, variable, joinName, lang);
     }
 
     private String translate(Property property, String prefix) {
@@ -1123,17 +1113,16 @@ public class Query<T extends Model> {
       final String baseLang = locale.getLanguage();
       final String joinName =
           prefix == null
-              ? String.format("_meta_translation_%s", variable)
-              : String.format("_meta_translation%s_%s", prefix, variable);
+              ? "_meta_translation_%s".formatted(variable)
+              : "_meta_translation%s_%s".formatted(prefix, variable);
       final String baseJoinName = joinName + "_base";
       final String from = prefix == null ? "self" : prefix;
 
       translationJoins.add(getTranslationJoin(joinName, from, variable, lang));
       translationJoins.add(getTranslationJoin(baseJoinName, from, variable, baseLang));
 
-      return String.format(
-          "COALESCE(NULLIF(%s.message, ''), NULLIF(%s.message, ''), %s.%s)",
-          joinName, baseJoinName, from, variable);
+      return "COALESCE(NULLIF(%s.message, ''), NULLIF(%s.message, ''), %s.%s)"
+          .formatted(joinName, baseJoinName, from, variable);
     }
 
     public String joinName(String name) {
@@ -1153,11 +1142,10 @@ public class Query<T extends Model> {
       final List<String> joinItems = new ArrayList<>();
       for (final Entry<String, String> entry : joins.entrySet()) {
         final String fetchString = fetch && fetches.contains(entry.getKey()) ? " FETCH" : "";
-        joinItems.add(
-            String.format("LEFT JOIN%s %s %s", fetchString, entry.getKey(), entry.getValue()));
+        joinItems.add("LEFT JOIN%s %s %s".formatted(fetchString, entry.getKey(), entry.getValue()));
       }
       for (final String join : translationJoins) {
-        joinItems.add(String.format("LEFT JOIN %s", join));
+        joinItems.add("LEFT JOIN %s".formatted(join));
       }
       return joinItems.isEmpty() ? "" : " " + joinItems.stream().collect(Collectors.joining(" "));
     }

@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai";
 import uniq from "lodash/uniq";
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState, type JSX } from "react";
 
 import {
   Box,
@@ -54,8 +54,8 @@ export function Tree({ meta }: ViewProps<TreeView>) {
       const ctx = getViewContext(actions);
       const params = createContextParams(view, action);
       return {
-        ...ctx,
         ...params,
+        ...ctx,
         _model: ctx?._model || view.nodes?.[0]?.model,
       } as DataContext;
     },

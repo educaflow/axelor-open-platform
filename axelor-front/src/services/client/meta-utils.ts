@@ -6,7 +6,7 @@ import startsWith from "lodash/startsWith";
 import uniqueId from "lodash/uniqueId";
 
 import { toKebabCase } from "@/utils/names";
-import { findViewItem } from "@/utils/schema";
+import { findJsonFieldItem, findViewItem } from "@/utils/schema";
 import { i18n } from "./i18n";
 import { ViewData, viewFields as fetchViewFields } from "./meta";
 import { ActionView, Field, JsonField, Property, Schema } from "./meta.types";
@@ -231,6 +231,11 @@ export async function findViewFields(
     }
   }
 
+  function addRelated(field: string, relatedField: string) {
+    const collect = result.related[field] || (result.related[field] = []);
+    pushIn(relatedField, collect);
+  }
+
   function acceptEditor(item: Schema) {
     let collect = items;
     const editor = item.editor;
@@ -316,11 +321,16 @@ export async function findViewFields(
       await findViewFields(viewFields, item, result);
     } else if (item.name && item.type === "field") {
       pushIn(item.name, items);
+      const { colorField } = item;
       const targetName = getNonDefaultTargetName(item, viewFields);
       if (targetName) {
-        const collect =
-          result.related[item.name] || (result.related[item.name] = []);
-        pushIn(targetName, collect);
+        addRelated(item.name, targetName);
+      }
+      if (colorField) {
+        const viewField = viewFields[item.name];
+        if (viewField?.type?.endsWith("TO_ONE")) {
+          addRelated(item.name, colorField);
+        }
       }
     }
   }
@@ -365,11 +375,13 @@ export function processView(
     view &&
     view.items
   ) {
-    const hasCustomAttrsField =
-      Object.values(meta.fields ?? {}).some((f) => f.jsonField === "attrs") ||
-      findViewItem(meta, "attrs") != null;
+    const hasCustomAttrsItems =
+      view.items.some((item) => {
+        const [jsonField, name] = item.name?.split(".", 2) ?? [];
+        return jsonField === "attrs" && meta.jsonFields?.["attrs"][name];
+      }) || findViewItem(meta, "attrs") != null;
 
-    if (view.type === "grid" && !hasCustomAttrsField) {
+    if (view.type === "grid" && !hasCustomAttrsItems) {
       const findLast = (
         array: any[],
         callback: (element: Schema, index?: number, array?: any[]) => boolean,
@@ -403,7 +415,7 @@ export function processView(
       })(view.items);
     }
 
-    if (view.type === "form" && !hasCustomAttrsField) {
+    if (view.type === "form" && !hasCustomAttrsItems) {
       view.items.push({
         type: "panel",
         title: i18n.get("Attributes"),
@@ -518,7 +530,6 @@ export function processView(
     const fields = view.fields ?? meta.fields ?? {};
 
     if (item.name) {
-      const field = fields[item.name];
       forEach(fields[item.name], (value, key) => {
         if (!Object.hasOwn(item, key)) {
           item[key] = value;
@@ -530,7 +541,7 @@ export function processView(
       // in case when custom field is used in form
       // but it doesn't exist in custom fields of that model
       // another case : it was deleted/removed
-      if (isCustomField && !field) {
+      if (isCustomField && !findJsonFieldItem(meta, item.name)) {
         item.serverType = "STRING";
         item.readonly = true;
         item.readonlyIf = "true";
@@ -713,13 +724,14 @@ export function processView(
     // include json fields in grid
     let items: Schema[] = [];
     forEach(view.items, (item) => {
-      if (item.jsonFields) {
+      if (item.jsonFields && !item.hidden) {
         forEach(item.jsonFields, (field) => {
           const type = field.type || "text";
           if (
             type.indexOf("-to-many") === -1 &&
             field.visibleInGrid &&
-            !field.forceHidden
+            !field.forceHidden &&
+            view.items?.find((i) => i.name === item.name + "." + field.name) == null
           ) {
             items.push({ ...field, name: item.name + "." + field.name });
           }

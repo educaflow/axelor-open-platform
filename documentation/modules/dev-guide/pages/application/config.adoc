@@ -223,8 +223,9 @@ Choose the right option by environment :
 | `application.multi-tenancy` | enable multi-tenancy | false
 | `application.config-provider` | `if-feature` custom class |
 | `application.domain-blocklist-pattern` | pattern to validate domain expressions |
-| `application.script.cache.size` | groovy scripts cache size | 500
-| `application.script.cache.expire-time` | groovy scripts cache entry expire time (in minutes) | 10
+| `application.script.cache.size` | Groovy scripts cache size | 500
+| `application.script.cache.expire-time` | Groovy scripts cache entry expire time (in minutes) | 10
+| `application.script.timeout` | Groovy/JavaScript scripts execution timeout (in milliseconds) | 300000
 | `application.permission.disable-action` | whether to not check action permissions | false
 | `application.permission.disable-relational-field` | whether to not check relational fields permissions | false
 | `view.single-tab` | whether to use single tab layout | false
@@ -235,6 +236,12 @@ Choose the right option by environment :
 | `view.adv-search.export-full` | whether to disable export full option in advance search | true
 | `view.form.check-version` | whether to check version value for concurrent updates when switching tabs | false
 | `view.collaboration.enabled` | whether to enable view collaboration (🏷️ EE only) | true
+| `view.collaboration.amqp.url`            | AMQP 1.0 broker URL for view collaboration (🏷️ EE only)      |
+| `view.collaboration.amqp.address`        | AMQP 1.0 address for view collaboration (🏷️ EE only)         |
+| `view.collaboration.amqp.source-address` | AMQP 1.0 source address for view collaboration (🏷️ EE only)  |
+| `view.collaboration.amqp.target-address` | AMQP 1.0 target address for view collaboration (🏷️ EE only)  |
+| `view.collaboration.amqp.username`       | AMQP 1.0 broker username for view collaboration (🏷️ EE only) |
+| `view.collaboration.amqp.password`       | AMQP 1.0 broker password for view collaboration (🏷️ EE only) |
 | `user.password.pattern` | pattern to validate user password | .{4,}
 | `user.password.pattern-title` | title displayed for the password pattern | "Please use at least 4 characters."
 | `api.pagination.max-per-page` | define the maximum number of items per page, -1 means unlimited | 500
@@ -255,6 +262,7 @@ Choose the right option by environment :
 | `reports.design-dir` | external directory for birt report designs | \{user.home}/.axelor/reports
 | `reports.fonts-config` | custom fonts config path for birt report designs |
 | `data.upload.dir` | storage path for upload files | \{user.home}/.axelor/attachments
+| `data.upload.temp-dir` | storage path for temporary files | \{java.io.tmpdir}/.axelor
 | `data.upload.max-size` | maximum upload size (in MB) | 5
 | `data.upload.filename-pattern` | upload filename pattern |
 | `data.upload.allowlist.pattern` | allowlist file name pattern, only matching files will be allowed |
@@ -262,7 +270,6 @@ Choose the right option by environment :
 | `data.upload.allowlist.types` | allowlist content type can be used to allow file upload with matching content |
 | `data.upload.blocklist.types` | blocklist content type can be used to block file upload with matching content |
 | `data.export.encoding` | data export encoding | UTF-8
-| `data.export.dir` | storage path for export action | \{user.home}/.axelor/data-export
 | `data.export.max-size` | maximum number of records to export, -1 means unlimited | -1
 | `data.export.fetch-size` | export fetch size | 500
 | `data.export.separator` | default export separator | ';'
@@ -270,6 +277,7 @@ Choose the right option by environment :
 | `data.export.collections.separator` | export separator for collections fields | ` \| `
 | `data.export.locale` | define a fixed locale for all exports |
 | `data.import.demo-data` | whether to import demo data for the application | true
+| `data.store.provider` | FQN of a `Store` implementation |
 | `template.search-dir` | template storage path for groovy template | \{user.home}/.axelor/templates
 | `cors.allow-origin` | comma-separated list of origins to allow | '*'
 | `cors.allow-credentials` | whether credentials are supported | true
@@ -280,6 +288,11 @@ Choose the right option by environment :
 | `cors.expose-headers` | comma-separated list of headers to include in a response |
 | `quartz.enable` | whether to enable quartz scheduler | false
 | `quartz.thread-count` | total number of threads in quartz thread pool | 3
+| `quartz.job-store.class` | JobStore class (e.g., `org.quartz.impl.jdbcjobstore.JobStoreTX` for JDBC persistence) | `org.quartz.simpl.RAMJobStore`
+| `quartz.job-store.cluster-checkin-interval` | cluster check-in interval in milliseconds | `7500`
+| `quartz.data-source.maximum-pool-size` | maximum number of connections for JDBC JobStore's data source | `quartz.thread-count`
+| `quartz.data-source.connection-test-query` | SQL validation query for JDBC JobStore's data source |
+| `quartz.data-source.idle-timeout` | idle connection discard time in milliseconds for JDBC JobStore's data source | `0` (disabled)
 | `mail.smtp.host` | smtp server host |
 | `mail.smtp.port` | smtp server port |
 | `mail.smtp.user` | smtp login username |
@@ -333,9 +346,9 @@ A minimal persistence xml file is required to confirm JPA requirements:
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<persistence version="2.1"
-  xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
+<persistence version="3.0"
+  xmlns="https://jakarta.ee/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
   <persistence-unit name="persistenceUnit" transaction-type="RESOURCE_LOCAL">
     <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
     <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
@@ -356,9 +369,9 @@ Some JPA/Hibernate configurations can also be set in `axelor-config.properties` 
 
 All others `hibernate.*` properties are also passed to Hibernate.
 
-== Cache Configuration
+== Persistence Cache Configuration
 
-Property `javax.persistence.sharedCache.mode` can be used to enable or disable second level caching.
+Property `jakarta.persistence.sharedCache.mode` can be used to enable or disable second level caching.
 
 Following keys can be used :
 
@@ -373,14 +386,14 @@ Following keys can be used :
 By default `Caffeine` implementation is used with pre-configured settings. If you need more control on caching,
 add and edit `application.conf`. See `Caffeine` configs and settings.
 
-There is also populars caching libraries such as {url-ehcache}[Ehcache],
+There are also popular caching libraries such as {url-ehcache}[Ehcache],
 {url-hazelcast}[Hazelcast], {url-redis}[Redis] or {url-infinispan}[Infinispan] that can be used instead of
 `Caffeine` by specifying properties `hibernate.cache.region.factory_class` and `hibernate.javax.cache.provider` :
 
 *Infinispan :*
 [source,gradle]
 ----
-implementation "org.infinispan:infinispan-hibernate-cache-v53:${infinispan_version}"
+implementation "org.infinispan:infinispan-hibernate-cache-v62:${infinispan_version}"
 implementation "org.infinispan:infinispan-core:${infinispan_version}"
 implementation "org.infinispan:infinispan-jcache:${infinispan_version}"
 ----
@@ -393,13 +406,30 @@ hibernate.cache.infinispan.cfg = org/infinispan/hibernate/cache/commons/builder/
 *Redis :*
 [source,gradle]
 ----
-implementation "org.redisson:redisson-hibernate-53:${redisson_version}"
+implementation "org.redisson:redisson-hibernate-6:${redisson_version}"
 ----
 [source,properties]
 ----
+# Use RedissonRegionFactory/RedissonRegionNativeFactory or any subclass
 hibernate.cache.region.factory_class = org.redisson.hibernate.RedissonRegionFactory
-# Make sure to add Redisson YAML config in classpath
+
+# Make sure to add `/redisson.yaml` config in classpath
+# Alternatively, you can specify config file path
+hibernate.cache.redisson.config = /path/to/redisson.yaml
+
+# Optional cache settings
+# Max size of cache (not supported by RedissonRegionNativeFactory)
+hibernate.cache.redisson.entity.eviction.max_entries = 10000
+# Time to live per cache entry in milliseconds
+hibernate.cache.redisson.entity.expiration.time_to_live = 600000
+# Max idle time per cache entry in milliseconds (not supported by RedissonRegionNativeFactory)
+hibernate.cache.redisson.entity.expiration.max_idle_time = 300000
 ----
+
+More details on https://redisson.org/docs/cache-api-implementations/#hibernate-cache[Redisson Hibernate Cache documentation].
+
+[NOTE]
+Instead of manually setting `hibernate.cache.region.factory_class`, you can set `application.cache.provider = redisson` or `application.cache.hibernate.provider = redisson` for better integration by reusing the same Redisson client across all the app components. See <<Global and Component-specific Cache Configurations>>.
 
 *Hazelcast :*
 [source,gradle]
@@ -422,8 +452,97 @@ implementation "org.ehcache:ehcache:${ehcache_version}"
 hibernate.javax.cache.provider = org.ehcache.jsr107.EhcacheCachingProvider
 ----
 
-Makes sure to add required dependencies if you want to use another caching library. Refer to providers docs for
+Make sure to add required dependencies if you want to use another caching library. Refer to providers docs for
 extensive configuration : all properties prefix by `hibernate.` will be used.
+
+== Global and Component-specific Cache Configurations
+
+The application supports different cache providers that can be applied globally or for specific components (Hibernate, Shiro).
+In the default cache configuration, the application globally uses Caffeine cache.
+The cache configuration allows to override those defaults, and is done through the following properties:
+
+[source,properties]
+----
+# Global cache configuration applied to Hibernate, Shiro and internal components
+# ~~~~~
+# Global cache provider: default/caffeine/redisson/redisson-native
+application.cache.provider = redisson
+# Global cache configuration for specified provider (if required by provider): either on filesystem or resource in classpath
+application.cache.config.path = redisson.yaml
+
+# Hibernate-specific cache configuration (takes precedence over global cache configuration)
+# ~~~~~
+#application.cache.hibernate.provider = redisson
+#application.cache.hibernate.config.path = redisson.yaml
+
+# Shiro-specific cache configuration (takes precedence over global cache configuration)
+# ~~~~~
+#application.cache.shiro.provider = redisson
+#application.cache.shiro.config.path = redisson.yaml
+----
+
+The cache configuration currently supports these providers:
+
+* `default` - Use default caching implementation
+* `caffeine` - Use Caffeine caching (same as default)
+* `redisson` - Use Redis/Valkey through Redisson client using scripted eviction
+* `redisson-native` - Use Redis/Valkey through Redisson client using native eviction
+
+[NOTE]
+Redisson native eviction allows to clean up expired map entries on Redis side instead of using a scheduled task.
+It requires https://valkey.io/commands/hpexpire/[HPEXPIRE command support] (Redis 7.4+ and Valkey 9.0+) and is currently supported for app-level cache and Hibernate cache, but not for Shiro cache.
+
+For global cache configuration, using one of those names will use the appropriate internal customized providers for each component for optimal usage (such as reusing the same Redisson instance).
+
+In the case of component-specific configurations (Hibernate, Shiro), you also have the option to specify the provider as fully-qualified class name in case you have custom requirements. For Hibernate, it can be either a `org.hibernate.cache.spi.RegionFactory` or `javax.cache.spi.CachingProvider` for JCache usage. For Shiro, it should be a `javax.cache.spi.CachingProvider` for JCache usage only.
+
+When using Caffeine, there is no cache provider configuration to provide.
+
+When using Redisson, there are two ways to provide Redisson configuration:
+
+1) Specify the path to a configuration file (defaults to `redisson.yaml`).
+Use `application.cache.config.path` for application-global cache configuration file, `application.cache.hibernate.config.path` for Hibernate-specific cache configuration file, and `application.cache.shiro.config.path` for Shiro-specific cache configuration file.
+Make sure your configuration file exists either in classpath or on file system.
+
+Example Redisson configuration file `redisson.yaml`:
+
+[source,yaml]
+----
+singleServerConfig:
+  address: "redis://127.0.0.1:6379"
+  idleConnectionTimeout: 10000
+  connectTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+threads: 16
+nettyThreads: 32
+codec: !<org.redisson.codec.SerializationCodec> {}
+----
+
+2) Specify the configuration values directly within `axelor-config.properties`.
+Use `application.cache.config.` prefix for application-global cache configuration, `application.cache.hibernate.config.` prefix for Hibernate-specific cache configuration, and `application.cache.shiro.config.` prefix for Shiro-specific cache configuration.
+Configuration sub-keys are used to programmatically set the Redisson configuration via Java reflection.
+The syntax for values differs slightly from the YAML Redisson configuration file, such as using comma-separated strings for lists and plain fully-qualified class names for bean instances.
+
+Example embedded Redisson configuration:
+
+[source,properties]
+----
+application.cache.config.single-server-config.address = redis://127.0.0.1:6379
+application.cache.config.single-server-config.idle-connection-timeout = 10000
+application.cache.config.single-server-config.connect-timeout = 10000
+application.cache.config.single-server-config.timeout = 3000
+application.cache.config.single-server-config.retry-attempts = 3
+application.cache.config.single-server-config.retry-interval = 1500
+application.cache.config.threads = 16
+application.cache.config.netty-threads = 32
+application.cache.config.codec = org.redisson.codec.SerializationCodec
+----
+
+See https://redisson.org/docs/configuration/[Redisson configuration documentation] for details about Redisson configuration.
+
+See xref:dev-guide:application/cache.adoc[AxelorCache] for cache usage in application code.
 
 == Global Context Configuration
 

@@ -246,7 +246,7 @@ export const restoreSelectedStateWithSavedRecord = (
   return formState;
 };
 
-export const useHandleFocus = (containerRef: RefObject<HTMLDivElement>) => {
+export const useHandleFocus = (containerRef: RefObject<HTMLDivElement | null>) => {
   const handleFocus = useCallback(() => {
     const elem = containerRef.current;
     if (elem) {
@@ -356,7 +356,7 @@ export function Form(props: ViewProps<FormView>) {
 
   const { id } = useViewRoute();
   const { action } = useViewTab();
-  const recordRef = useRef<DataRecord | null>(null);
+  const recordRef = useRef<DataRecord>(null);
 
   const { params } = action;
   const recordId = String(id || "");
@@ -452,9 +452,7 @@ const FormContainer = memo(function FormContainer({
   const dataStoreViewProp = useViewProp<DataStore>("dataStore");
 
   const { formAtom, actionHandler, recordHandler, actionExecutor } =
-    useFormHandlers(meta, defaultRecord, {
-      context: action?.context,
-    });
+    useFormHandlers(meta, defaultRecord);
   const prepareRecordForSave = usePrepareSaveRecord(meta, formAtom);
 
   const showConfirmDirty = useViewConfirmDirty();
@@ -546,7 +544,7 @@ const FormContainer = memo(function FormContainer({
   );
 
   const copyRecordRef = useRef(false);
-  const widgetHandler = useRef<FormWidgetsHandler | null>(null);
+  const widgetHandler = useRef<FormWidgetsHandler>(null);
   const switchTo = useViewSwitch();
 
   const dirtyAtom = useViewDirtyAtom();
@@ -1592,7 +1590,7 @@ export const Layout: FormLayout = ({
   className,
   readonly,
 }) => {
-  const ref = useRef<HTMLDivElement | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const isSmall = useContainerQuery(ref, "width < 768px");
 
   const { main, side, small } = useMemo(() => {

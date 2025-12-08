@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.db.mapper;
 
@@ -22,11 +8,10 @@ import com.axelor.common.ResourceUtils;
 import com.axelor.db.annotations.NameColumn;
 import com.axelor.db.annotations.Sequence;
 import com.axelor.meta.db.MetaJsonRecord;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -44,9 +29,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
@@ -61,10 +47,10 @@ import org.objectweb.asm.tree.MethodNode;
 public class Mapper {
 
   private static final LoadingCache<Class<?>, Mapper> MAPPER_CACHE =
-      CacheBuilder.newBuilder().maximumSize(1000).weakKeys().build(CacheLoader.from(Mapper::new));
+      Caffeine.newBuilder().maximumSize(1000).weakKeys().build(Mapper::new);
 
   private static final Cache<Method, Annotation[]> ANNOTATION_CACHE =
-      CacheBuilder.newBuilder().maximumSize(1000).weakKeys().build();
+      Caffeine.newBuilder().maximumSize(1000).weakKeys().build();
 
   private static final Object[] NULL_ARGUMENTS = {};
 
@@ -87,7 +73,7 @@ public class Mapper {
   private Class<?> beanClass;
 
   private Mapper(Class<?> beanClass) {
-    Preconditions.checkNotNull(beanClass);
+    Objects.requireNonNull(beanClass);
     this.beanClass = beanClass;
     try {
       BeanInfo info = Introspector.getBeanInfo(beanClass, Object.class);
@@ -198,7 +184,7 @@ public class Mapper {
   public static Mapper of(Class<?> klass) {
     try {
       return MAPPER_CACHE.get(klass);
-    } catch (ExecutionException e) {
+    } catch (CompletionException e) {
       throw new RuntimeException(e);
     }
   }
@@ -233,8 +219,8 @@ public class Mapper {
     return Optional.ofNullable(getProperty(name))
         .orElseGet(
             () ->
-                bean instanceof MetaJsonRecord
-                    ? JsonProperty.of(((MetaJsonRecord) bean).getJsonModel(), name)
+                bean instanceof MetaJsonRecord metaJsonRecord
+                    ? JsonProperty.of(metaJsonRecord.getJsonModel(), name)
                     : JsonProperty.of(bean.getClass(), name));
   }
 
@@ -245,7 +231,7 @@ public class Mapper {
    * @return the property associated with the method
    */
   public Property getProperty(Method method) {
-    Preconditions.checkNotNull(method);
+    Objects.requireNonNull(method);
     return getProperty(methods.get(method.getName()));
   }
 
@@ -285,7 +271,7 @@ public class Mapper {
    * @return set of fields accessed by computed property
    */
   public Set<String> getComputeDependencies(Property property) {
-    Preconditions.checkNotNull(property);
+    Objects.requireNonNull(property);
     if (computeDependencies == null) {
       computeDependencies = findComputeDependencies();
     }
@@ -312,22 +298,21 @@ public class Mapper {
 
     return ((List<?>) node.methods)
         .stream()
-            .map(m -> (MethodNode) m)
+            .map(MethodNode.class::cast)
             .filter(m -> Modifier.isProtected(m.access))
             .filter(m -> m.name.startsWith(PREFIX_COMPUTE))
             .filter(m -> methods.containsKey(m.name))
             .collect(
                 Collectors.toMap(
                     m -> methods.get(m.name),
-                    m -> {
-                      return Arrays.stream(m.instructions.toArray())
-                          .filter(n -> n.getOpcode() == Opcodes.GETFIELD)
-                          .filter(n -> n instanceof FieldInsnNode)
-                          .map(n -> (FieldInsnNode) n)
-                          .filter(n -> !n.name.equals(methods.get(m.name)))
-                          .map(n -> n.name)
-                          .collect(Collectors.toSet());
-                    }));
+                    m ->
+                        Arrays.stream(m.instructions.toArray())
+                            .filter(n -> n.getOpcode() == Opcodes.GETFIELD)
+                            .filter(FieldInsnNode.class::isInstance)
+                            .map(FieldInsnNode.class::cast)
+                            .filter(n -> !n.name.equals(methods.get(m.name)))
+                            .map(n -> n.name)
+                            .collect(Collectors.toSet())));
   }
 
   /**
@@ -368,8 +353,8 @@ public class Mapper {
    * @return property value
    */
   public Object get(Object bean, String name) {
-    Preconditions.checkNotNull(bean);
-    Preconditions.checkNotNull(name);
+    Objects.requireNonNull(bean);
+    Objects.requireNonNull(name);
     Preconditions.checkArgument(beanClass.isInstance(bean));
     Preconditions.checkArgument(!name.trim().equals(""));
     try {
@@ -388,8 +373,8 @@ public class Mapper {
    * @return old value of the property
    */
   public Object set(Object bean, String name, Object value) {
-    Preconditions.checkNotNull(bean);
-    Preconditions.checkNotNull(name);
+    Objects.requireNonNull(bean);
+    Objects.requireNonNull(name);
     Preconditions.checkArgument(beanClass.isInstance(bean));
     Preconditions.checkArgument(!name.trim().equals(""));
 

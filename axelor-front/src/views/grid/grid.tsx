@@ -42,6 +42,7 @@ import {
   Schema,
   Widget,
 } from "@/services/client/meta.types";
+import { rejectAsAlert } from "@/services/client/reject";
 import { commonClassNames } from "@/styles/common";
 import { DEFAULT_PAGE_SIZE } from "@/utils/app-settings.ts";
 import { focusAtom } from "@/utils/atoms";
@@ -146,7 +147,7 @@ function GridInner(props: ViewProps<GridView>) {
   const pageSetRef = useRef(false);
   const gridRef = useRef<GridHandler>(null);
   const selectedIdsRef = useRef<number[]>([]);
-  const saveIdRef = useRef<number | null>();
+  const saveIdRef = useRef<number>(null);
   const saveGridStateRef = useRef(0);
   const initDetailsRef = useRef(false);
   const reorderRef = useRef(false);
@@ -202,34 +203,17 @@ function GridInner(props: ViewProps<GridView>) {
   const hasRowSelectedFromState = useRef((viewSelectedRows?.length ?? 0) > 0);
   const [records, setRecords] = useState(dataStore.records);
 
-  const processSearchResult = useAtomCallback(
-    useCallback(
-      (get, set, { records, page }: SearchResult) => {
-        const { onGridSearch } = popupOptions ?? {};
-        if (onGridSearch) {
-          const { search } = (searchAtom && get(searchAtom)) ?? {};
-          return onGridSearch(records, page, search);
-        }
-        return records;
-      },
-      [popupOptions, searchAtom],
-    ),
-  );
-
   useEffect(
     () =>
       dataStore.subscribe((ds) => {
-        setRecords(processSearchResult(ds));
+        setRecords(ds.records);
       }),
-    [dataStore, processSearchResult],
+    [dataStore],
   );
 
   const onColumnCustomize = useCustomizePopup({
     view,
     stateAtom: gridStateAtom,
-    allowCustomization: Boolean(
-      action.params?.["_can-customize-popup"] ?? true,
-    ),
   });
 
   const { orderBy = null, rows, selectedRows, selectedCell } = state;
@@ -390,8 +374,10 @@ function GridInner(props: ViewProps<GridView>) {
         });
 
         if (resp.ok) {
-          const { status } = await resp.json();
-          if (status !== 0) return Promise.reject(500);
+          const { status, data } = await resp.json();
+          if (status !== 0) {
+            return rejectAsAlert(data);
+          }
         }
 
         onSearch();
@@ -623,7 +609,7 @@ function GridInner(props: ViewProps<GridView>) {
       if (saved) {
         fetchAndSetDetailsRecord(saved, options?.select, restoreDummyValues);
         if ((record.id ?? 0) < 0) {
-          saveIdRef.current = saved.id;
+          saveIdRef.current = saved.id ?? null;
         }
       }
     },
@@ -739,11 +725,11 @@ function GridInner(props: ViewProps<GridView>) {
 
   const getContext = useCallback<() => DataContext>(
     () => ({
+      ...createContextParams(view, action),
       ...getViewContext(true),
       ...(selectedIdsRef.current?.length > 0 && {
         _ids: selectedIdsRef.current,
       }),
-      ...createContextParams(view, action),
     }),
     [action, view, getViewContext],
   );
@@ -810,7 +796,6 @@ function GridInner(props: ViewProps<GridView>) {
     if (popup) {
       setPopupHandlers({
         data: state,
-        dataRecords: records,
         dataStore: dataStore,
         onSearch,
       });
@@ -1122,7 +1107,7 @@ function GridInner(props: ViewProps<GridView>) {
           deleteEnabled && {
             onDelete: handleDelete,
           }),
-        onRefresh: () => doSearch({}),
+        onRefresh: doSearch,
       });
     }
   }, [
@@ -1363,7 +1348,7 @@ function GridInner(props: ViewProps<GridView>) {
       )}
       {canShowHelp && (
         <div className={styles.help}>
-          <HelpComponent text={inlineHelp.text} css={inlineHelp.css} />
+          <HelpComponent text={inlineHelp.text} />
         </div>
       )}
       <div className={styles.views}>

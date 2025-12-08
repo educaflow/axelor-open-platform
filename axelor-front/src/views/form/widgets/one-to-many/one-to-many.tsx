@@ -23,7 +23,7 @@ import {
   useState,
 } from "react";
 
-import { Box, Button, Panel, clsx } from "@axelor/ui";
+import { Box, Button, CommandBarProps, Panel, clsx } from "@axelor/ui";
 import { GridColumnProps, GridRow, GridState } from "@axelor/ui/grid";
 import { MaterialIcon } from "@axelor/ui/icons/material-icon";
 
@@ -312,6 +312,7 @@ function OneToManyInner({
     lastSelectedIdsByServer: number[];
     serverSelectedIds: number[] | null;
     syncServerSelectionPending: boolean;
+    hasRefreshBeenCalled: boolean;
   }>({
     reorder: false,
     recordsSync: false,
@@ -321,9 +322,10 @@ function OneToManyInner({
     lastSelectedIdsByServer: [],
     serverSelectedIds: null,
     syncServerSelectionPending: false,
+    hasRefreshBeenCalled: false,
   });
 
-  const panelRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<GridHandler>(null);
 
   const eventsAtom = useMemo(() => atom<GridExpandableEvents>({}), []);
@@ -507,12 +509,19 @@ function OneToManyInner({
                 .concat(newRecords);
             });
 
+            refs.current.hasRefreshBeenCalled = false;
+
             const result = await set(
               valueAtom,
               (refs.current.value = values),
               callOnChange,
               markDirty,
             );
+
+            // Check if a refresh was triggered during the onChange event.
+            // This can happen in scenarios where an action (e.g. save) is performed
+            // as part of the onChange handler. If so, exit early to avoid further updates.
+            if (refs.current.hasRefreshBeenCalled) return;
 
             const hasValueChanged =
               (result as unknown as ActionResult[])?.filter?.(
@@ -1607,11 +1616,12 @@ function OneToManyInner({
     fetchAndSetDetailRecord(selected);
   }, [detailMeta, selected?.id, fetchAndSetDetailRecord]);
 
-  const onRefresh = useCallback(() => {
+  const onFormRefresh = useCallback(() => {
+    refs.current.hasRefreshBeenCalled = true;
     resetValue();
   }, [resetValue]);
 
-  useFormRefresh(onRefresh);
+  useFormRefresh(onFormRefresh);
 
   const onDiscard = useCallback(
     (record: DataRecord) => {
@@ -1634,12 +1644,14 @@ function OneToManyInner({
   const allowSorting = !canMove && !changed;
   const allowGrouping = !canMove;
   const allowRowReorder = canMove && !readonly;
-  const canShowHeader = !isSubTreeGrid; // widgetAttrs?.showHeader !== "false";
-  const noHeader =
-    !canShowHeader &&
+
+  const hasRows = (rows?.length ?? 0) > 0;
+  const showSubTreeTitleIfEmpty = Boolean(
+    isSubTreeGrid && schema.title && !hasRows,
+  );
+  const shouldHideHeaderForSubTree =
+    isSubTreeGrid &&
     (readonly || (value?.length ?? 0) > 0 || (records?.length ?? 0) > 0);
-  const canShowTitle =
-    !noHeader && (schema.showTitle ?? widgetAttrs?.showTitle ?? true);
   const canExpandAll = isRootTreeGrid && widgetAttrs?.expandAll !== "false";
 
   const selectFieldsAtom = useMemo(() => {
@@ -1954,6 +1966,115 @@ function OneToManyInner({
     treeField,
   ]);
 
+  const header = (
+    <div className={styles.header}>
+      <div className={styles.title}>
+        {showSubTreeTitleIfEmpty ? (
+          <Button
+            d="flex"
+            rounded
+            size="sm"
+            variant="primary"
+            className={styles.button}
+            {...(canNew && {
+              onClick: editable ? onAddInGrid : onAdd,
+            })}
+          >
+            <MaterialIcon className={styles.icon} icon="add" /> {schema.title}
+          </Button>
+        ) : (
+          <FieldLabel
+            schema={schema}
+            formAtom={formAtom}
+            widgetAtom={widgetAtom}
+          />
+        )}
+      </div>
+      {hasActions && (
+        <ToolbarActions
+          buttons={toolbar}
+          menus={menubar}
+          actionExecutor={actionExecutor}
+        />
+      )}
+    </div>
+  );
+
+  const toolbarActions: CommandBarProps = {
+    iconOnly: true,
+    className: styles.toolbar,
+    items: [
+      {
+        key: "select",
+        text: i18n.get("Select"),
+        iconProps: {
+          icon: "search",
+        },
+        onClick: onSelect,
+        hidden: !canSelect,
+      },
+      {
+        key: "new",
+        text: i18n.get("New"),
+        iconProps: {
+          icon: "add",
+        },
+        onClick: editable ? onAddInGrid : onAdd,
+        hidden: !canNew || Boolean(showSubTreeTitleIfEmpty),
+      },
+      {
+        key: "edit",
+        text: i18n.get("Edit"),
+        iconProps: {
+          icon: "edit",
+        },
+        disabled: !hasRowSelected,
+        hidden: !canEdit || !hasRowSelected,
+        onClick: () => {
+          const [rowIndex] = selectedRows || [];
+          const record = rows[rowIndex]?.record;
+          if (record) {
+            onEdit(record);
+          }
+        },
+      },
+      {
+        key: "delete",
+        text: i18n.get("Delete"),
+        iconProps: {
+          icon: "delete",
+        },
+        disabled: !hasRowSelected,
+        hidden: !canDelete || !hasRowSelected,
+        onClick: () => {
+          onDelete(selectedRows!.map((ind) => rows[ind]?.record));
+        },
+      },
+      {
+        key: "more",
+        iconOnly: true,
+        hidden: !canCopy && !canExport,
+        iconProps: {
+          icon: "arrow_drop_down",
+        },
+        items: [
+          {
+            key: "duplicate",
+            text: i18n.get("Duplicate"),
+            hidden: !canDuplicate,
+            onClick: onDuplicate,
+          },
+          {
+            key: "export",
+            text: i18n.get("Export"),
+            hidden: !canExport,
+            onClick: onExport,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <>
       {isRootTreeGrid && (
@@ -1962,134 +2083,26 @@ function OneToManyInner({
       <Panel
         ref={panelRef}
         className={clsx(styles.container, panelClass, {
-          [styles.toolbar]: hasActions,
           [styles.tree]: isTreeGrid,
-          [styles.hasHeader]: isSubTreeGrid && canShowHeader,
-          [styles.hasNewHeader]: isTreeGrid && !state.rows?.length,
-          [styles.noHeader]: noHeader,
-          [styles.noTitle]: !canShowTitle,
+          [styles.subTree]: isSubTreeGrid,
+          [styles.hasActions]: hasActions,
+          [styles.hasContent]: hasRows,
+          [styles.hideSubTreeHeader]: shouldHideHeaderForSubTree,
         })}
-        header={
-          <div className={styles.title}>
-            <div className={styles.titleText}>
-              {canShowTitle &&
-                (isSubTreeGrid && schema.title && rows.length === 0 ? (
-                  <Button
-                    d="flex"
-                    rounded
-                    size="sm"
-                    variant="primary"
-                    className={styles.addTextBtn}
-                    {...(canNew && {
-                      onClick: editable ? onAddInGrid : onAdd,
-                    })}
-                  >
-                    <MaterialIcon className={styles.addTextIcon} icon="add" />{" "}
-                    {schema.title}
-                  </Button>
-                ) : (
-                  <FieldLabel
-                    schema={schema}
-                    formAtom={formAtom}
-                    widgetAtom={widgetAtom}
-                  />
-                ))}
-            </div>
-            {hasActions && (
-              <ToolbarActions
-                buttons={toolbar}
-                menus={menubar}
-                actionExecutor={actionExecutor}
-              />
-            )}
-          </div>
-        }
-        toolbar={{
-          iconOnly: true,
-          className: styles.bar,
-          items: [
-            {
-              key: "select",
-              text: i18n.get("Select"),
-              iconProps: {
-                icon: "search",
-              },
-              onClick: onSelect,
-              hidden: !canSelect,
-            },
-            {
-              key: "new",
-              text: i18n.get("New"),
-              iconProps: {
-                icon: "add",
-              },
-              onClick: editable ? onAddInGrid : onAdd,
-              hidden:
-                !canNew ||
-                Boolean(isSubTreeGrid && schema.title && rows.length === 0),
-            },
-            {
-              key: "edit",
-              text: i18n.get("Edit"),
-              iconProps: {
-                icon: "edit",
-              },
-              disabled: !hasRowSelected,
-              hidden: !canEdit || !hasRowSelected,
-              onClick: () => {
-                const [rowIndex] = selectedRows || [];
-                const record = rows[rowIndex]?.record;
-                record && onEdit(record);
-              },
-            },
-            {
-              key: "delete",
-              text: i18n.get("Delete"),
-              iconProps: {
-                icon: "delete",
-              },
-              disabled: !hasRowSelected,
-              hidden: !canDelete || !hasRowSelected,
-              onClick: () => {
-                onDelete(selectedRows!.map((ind) => rows[ind]?.record));
-              },
-            },
-            {
-              key: "more",
-              iconOnly: true,
-              hidden: !canCopy && !canExport,
-              iconProps: {
-                icon: "arrow_drop_down",
-              },
-              items: [
-                {
-                  key: "duplicate",
-                  text: i18n.get("Duplicate"),
-                  hidden: !canDuplicate,
-                  onClick: onDuplicate,
-                },
-                {
-                  key: "export",
-                  text: i18n.get("Export"),
-                  hidden: !canExport,
-                  onClick: onExport,
-                },
-              ],
-            },
-          ],
-        }}
+        {...(!shouldHideHeaderForSubTree && {
+          header,
+          toolbar: toolbarActions,
+        })}
       >
         <GridExpandableContext.Provider value={expandableContext}>
           <ScopeProvider scope={MetaScope} value={viewMeta}>
             <GridComponent
               style={gridStyle}
               className={clsx(styles["grid"], {
+                [styles["basic"]]: !hasMasterDetails,
+                [styles["no-rows"]]: !hasRows,
                 [styles["tree-grid"]]: isTreeGrid,
                 [styles["sub-tree-grid"]]: isSubTreeGrid,
-                [styles["tree-grid-empty"]]:
-                  isTreeGrid && noHeader && records.length === 0,
-                [styles["no-border-grid"]]: isTreeGrid && !isRootTreeGrid,
-                [styles.hasDetails]: hasMasterDetails,
               })}
               ref={gridRef}
               allowGrouping={allowGrouping}

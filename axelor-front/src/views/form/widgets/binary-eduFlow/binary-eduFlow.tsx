@@ -12,9 +12,11 @@ import { i18n } from "@/services/client/i18n";
 import { FieldControl, FieldProps, FormAtom } from "../../builder";
 import {
   META_FILE_MODEL,
-  makeImageURL,
-  validateFileSize,
+  makeImageURL
 } from "../image/utils";
+
+import { validateFileSize } from "@/utils/files";
+
 import { useViewDirtyAtom } from "@/view-containers/views/scope";
 import { formDirtyUpdater } from "../../builder/atoms";
 

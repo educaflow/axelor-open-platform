@@ -278,12 +278,10 @@ function Footer({
   }, [setHandler, handleClose]);
 
   useEffect(() => {
-    return handler.actionHandler?.subscribe(async (data) => {
+    return handler.actionHandler?.setCloseHandler(async () => {
       const { actionExecutor } = handler;
       await actionExecutor?.wait();
-      if (data.type === "close") {
-        onClose(true);
-      }
+      onClose(true);
     });
   }, [handler, onClose]);
 
@@ -339,7 +337,7 @@ export function useManyEditor(action: ActionView, dashlet?: boolean) {
     ),
   );
 
-  const parentId = useRef<string | null>(null);
+  const parentId = useRef<string>(null);
 
   useEffect(() => {
     if (!parentId.current) {

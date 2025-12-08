@@ -5,19 +5,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { Navigate, Link as RouterLink, useLocation } from "react-router-dom";
+import { Navigate, Link as RouterLink, useLocation } from "react-router";
 
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Input,
-  InputLabel,
-  Select,
-} from "@axelor/ui";
+import { Alert, Box, Input, InputLabel, Select } from "@axelor/ui";
 
 import { AppSignInLogo } from "@/components/app-logo/app-logo";
+import { LoadingButton } from "@/components/loading-button";
 import { useAppSettings } from "@/hooks/use-app-settings";
 import { useSession } from "@/hooks/use-session";
 import { request } from "@/services/client/client";
@@ -181,7 +174,7 @@ export function ForgotPassword() {
                     </Alert>
                   )}
 
-                  <Button
+                  <LoadingButton
                     type="submit"
                     variant="primary"
                     d="flex"
@@ -189,13 +182,11 @@ export function ForgotPassword() {
                     gap={4}
                     mt={2}
                     w={100}
-                    disabled={!emailAddress || isSubmitting}
+                    loading={isSubmitting}
+                    disabled={!emailAddress}
                   >
-                    {isSubmitting && (
-                      <CircularProgress size={16} indeterminate />
-                    )}
                     {i18n.get("Reset password")}
-                  </Button>
+                  </LoadingButton>
                 </>
               )}
             </Box>

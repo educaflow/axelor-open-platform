@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.meta.db.repo;
 
@@ -33,15 +19,15 @@ import com.axelor.meta.db.MetaJsonField;
 import com.axelor.meta.db.MetaJsonRecord;
 import com.axelor.rpc.Request;
 import com.google.inject.persist.Transactional;
+import jakarta.inject.Named;
+import jakarta.inject.Singleton;
+import jakarta.persistence.Query;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.inject.Named;
-import javax.inject.Singleton;
-import javax.persistence.Query;
 
 @Singleton
 public class MetaJsonReferenceUpdater {
@@ -94,7 +80,7 @@ public class MetaJsonReferenceUpdater {
   private boolean nameChanged(Property field, Map<?, ?> map) {
     if (field.isVirtual()) {
       Mapper mapper = Mapper.of(field.getEntity());
-      return mapper.getComputeDependencies(field).stream().anyMatch(name -> map.containsKey(name));
+      return mapper.getComputeDependencies(field).stream().anyMatch(map::containsKey);
     }
     return map.containsKey(field.getName());
   }
@@ -110,7 +96,7 @@ public class MetaJsonReferenceUpdater {
       return;
     }
 
-    final Mapper beanMapper = Mapper.of(EntityHelper.getEntityClass(records.get(0)));
+    final Mapper beanMapper = Mapper.of(EntityHelper.getEntityClass(records.getFirst()));
     final Property field = beanMapper.getNameField();
 
     if (field == null || field.getType() != PropertyType.STRING) {
@@ -127,9 +113,9 @@ public class MetaJsonReferenceUpdater {
     String filter = "self.type = 'many-to-one' and self.targetModel = :model";
     String model = entityClass.getName();
 
-    if (bean instanceof MetaJsonRecord) {
+    if (bean instanceof MetaJsonRecord metaJsonRecord) {
       filter = "self.type = 'json-many-to-one' and self.targetJsonModel.name = :model";
-      model = ((MetaJsonRecord) bean).getJsonModel();
+      model = metaJsonRecord.getJsonModel();
     }
 
     final MetaJsonFieldRepository fieldRepository = Beans.get(MetaJsonFieldRepository.class);
@@ -138,15 +124,15 @@ public class MetaJsonReferenceUpdater {
 
     for (MetaJsonField field : fields) {
       String queryString =
-          String.format(
-              "UPDATE %s self SET self.%s = json_set(self.%s, '%s.%s', :value) WHERE json_extract(self.%s, '%s', 'id') = :id",
-              field.getModel(),
-              field.getModelField(),
-              field.getModelField(),
-              field.getName(),
-              nameField.getName(),
-              field.getModelField(),
-              field.getName());
+          "UPDATE %s self SET self.%s = json_set(self.%s, '%s.%s', :value) WHERE json_extract(self.%s, '%s', 'id') = :id"
+              .formatted(
+                  field.getModel(),
+                  field.getModelField(),
+                  field.getModelField(),
+                  field.getName(),
+                  nameField.getName(),
+                  field.getModelField(),
+                  field.getName());
 
       Query query = JPA.em().createQuery(queryString);
       query.setParameter("value", nameField.get(bean));

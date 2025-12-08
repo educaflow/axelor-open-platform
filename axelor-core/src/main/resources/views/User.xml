@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <object-views xmlns="http://axelor.com/xml/ns/object-views"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_7.4.xsd">
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.0.xsd">
 
   <selection name="select.language">
     <option value="es">Castellano</option>
@@ -16,7 +16,7 @@
     <field name="group"/>
   </grid>
 
-  <form name="user-form" title="User" model="com.axelor.auth.db.User">
+  <form name="user-form" title="User" model="com.axelor.auth.db.User" onSave="action-method-user-save">
     <panel title="Overview">
       <field name="name" placeholder="user name" onChange="action-condition-user-validName" validIf="name.length >= 2"/>
       <field name="code" placeholder="login name" onChange="action-condition-user-validCode" validIf="code.length >= 2" readonlyIf="id &amp;&amp; code == 'admin'"/>
@@ -48,15 +48,20 @@
         </panel>
         <help>user.password.pattern-title</help>
       </panel>
+      <panel-dashlet name="activeUserTokensPanel" action="action.view.show.active.tokens" colSpan="12" canNew="true" if="__repo__(UserToken).isPermitted()"/>
     </panel>
-    <panel-tabs>
+      <panel title="Multi-Factor Authentication" if="__repo__(MFA).isPermitted()">
+        <label title="Multi-Factor Authentication adds an extra layer of security." colSpan="7"/>
+        <button name="manageMfaBtn" onClick="action-method-show-mfa-form" title="Manage multi-factor authentication" colSpan="5"/>
+      </panel>
+      <panel-tabs>
       <panel-related field="roles" form-view="role-form" grid-view="role-grid"/>
       <panel-related field="permissions" grid-view="simple-permission-grid" form-view="permission-form"/>
       <panel-related field="metaPermissions"/>
     </panel-tabs>
   </form>
 
-  <form name="user-preferences-form" title="Preferences" model="com.axelor.auth.db.User">
+  <form name="user-preferences-form" title="Preferences" model="com.axelor.auth.db.User" onSave="action-method-user-save">
     <panel title="User preferences" itemSpan="12">
       <field name="image" showTitle="false" />
       <field name="email" widget="Email"/>
@@ -72,6 +77,14 @@
           <field name="chkPassword" title="Confirm new password" placeholder="confirm new password" help="Confirm new password of the user (must be identical to the new password)" widget="password" requiredIf="change" validIf="chkPassword === newPassword"/>
           <help>user.password.pattern-title</help>
       </panel>
+      <panel if="__repo__(UserToken).isPermitted()">
+        <field name="$manageUserTokens" title="Manage API keys?" type="boolean" widget="inline-checkbox" />
+        <panel-dashlet name="activeUserTokensPanel" action="action.view.show.active.tokens" colSpan="12" canNew="true" showIf="$manageUserTokens"/>
+      </panel>
+      <panel title="Multi-Factor Authentication" if="__repo__(MFA).isPermitted()">
+        <label title="Multi-Factor Authentication adds an extra layer of security." colSpan="7"/>
+        <button name="manageMfaBtn" onClick="action-method-show-mfa-form" title="Manage multi-factor authentication" colSpan="5"/>
+      </panel>
     </panel>
   </form>
 
@@ -85,7 +98,24 @@
 
   <action-condition name="action-condition-user-password">
     <check error="Password doesn't match configured pattern." field="newPassword"
-      if="!com.axelor.auth.AuthService.getInstance().passwordMatchesPattern(newPassword)" />
+      if="!__bean__(com.axelor.auth.UserService).passwordMatchesPattern(newPassword)" />
   </action-condition>
+
+  <action-view name="action.view.show.active.tokens" title="API keys" model="com.axelor.auth.db.UserToken">
+    <view type="grid" name="user-token-grid" />
+    <view type="form" name="user-token-form" />
+    <view-param name="popup" value="true"/>
+    <view-param name="popup-save" value="false"/>
+    <domain>self.owner = :userId</domain>
+    <context name="userId" expr="eval: id" />
+  </action-view>
+
+  <action-method name="action-method-user-save">
+    <call class="com.axelor.auth.web.UserController" method="onSave"/>
+  </action-method>
+
+  <action-method name="action-method-show-mfa-form">
+     <call class="com.axelor.auth.web.MFAController" method="showRelatedMfa"/>
+   </action-method>
 
 </object-views>

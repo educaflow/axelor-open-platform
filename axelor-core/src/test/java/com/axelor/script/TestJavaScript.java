@@ -1,25 +1,13 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.script;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.axelor.rpc.Context;
@@ -110,12 +98,56 @@ public class TestJavaScript extends ScriptTest {
   }
 
   @Test
-  public void doJpaTest() {
-    final ScriptHelper helper = new JavaScriptScriptHelper(context());
-    final Object bean = helper.eval("doInJPA(em => __repo__(Contact).find(id))");
+  public void testSecurity() {
+    ScriptHelper helper = new JavaScriptScriptHelper(context());
+    // classes from java.lang should be allowed
+    assertTrue((Boolean) helper.eval("java.lang.Boolean.TRUE"));
 
-    assertNotNull(bean);
-    assertTrue(bean instanceof Contact);
+    // but java.lang.{System,Process,Thread} are not allowed
+    assertThrows(
+        IllegalArgumentException.class, () -> helper.eval("java.lang.System.currentTimeMillis()"));
+    assertThrows(IllegalArgumentException.class, () -> helper.eval("java.lang.System.exit(-1)"));
+    assertThrows(IllegalArgumentException.class, () -> helper.eval("java.lang.Thread.sleep(1000)"));
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            helper.eval(
+                "new java.lang.ProcessBuilder().command('ls', '-l').inheritIO().start().waitFor()"));
+
+    // allow models
+    assertNotNull(helper.eval("__repo__(Title).all().fetchOne().name"));
+
+    // app settings not allowed
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> helper.eval("com.axelor.app.AppSettings.get().get('db.test.url')"));
+
+    // app settings not allowed through __config__
+    assertNull(helper.eval("__config__.get('db.test.url')"));
+
+    // only custom settings helper allowed
+    assertNull(helper.eval("__config__.get('application.mode')"));
+    assertNotNull(
+        helper.eval("__bean__(com.axelor.script.policy.ScriptAppSettings).getApplicationMode()"));
+
+    // trying to access a file
+    assertThrows(IllegalArgumentException.class, () -> helper.eval("new java.io.File('/tmp')"));
+    assertThrows(
+        IllegalArgumentException.class, () -> helper.eval("java.nio.file.Paths.get('/tmp')"));
+
+    // even try with reflection
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            helper.eval(
+                "java.lang.Class.forName('java.io.File').getConstructor(java.lang.String).newInstance('/some/file')"));
+  }
+
+  @Test
+  public void testTimeout() {
+    final ScriptHelper helper = new JavaScriptScriptHelper(context()).withTimeout(100);
+    assertThrows(IllegalArgumentException.class, () -> helper.eval("while (true) { ;; }"));
   }
 
   @Test

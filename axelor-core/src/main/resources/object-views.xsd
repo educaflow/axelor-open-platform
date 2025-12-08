@@ -1,27 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-
-    Axelor Business Solutions
-
-    Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+   SPDX-FileCopyrightText: Axelor <https://axelor.com>
+   SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <xsd:schema targetNamespace="http://axelor.com/xml/ns/object-views"
   xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
-  attributeFormDefault="unqualified" xmlns:tns="http://axelor.com/xml/ns/object-views" version="7.4">
+  attributeFormDefault="unqualified" xmlns:tns="http://axelor.com/xml/ns/object-views" version="8.0">
 
   <xsd:annotation>
     <xsd:documentation>
@@ -131,16 +115,6 @@
             <xsd:documentation>
               Comma-separated list of authorized groups.
             </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="top" type="xsd:boolean">
-          <xsd:annotation>
-            <xsd:documentation>
-              Whether to show the menu item in top navigation menu.
-              REMOVED: Top menu support has been removed since 7.0. To ensure compatibility,
-              attribute is still present but will be removed in a future version.
-            </xsd:documentation>
-            <xsd:documentation>deprecated</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="left" type="xsd:boolean">
@@ -1375,14 +1349,14 @@
     <xsd:attribute name="x-color-field" type="xsd:string">
       <xsd:annotation>
         <xsd:documentation>
-          Specify the color field to use with tag-select widget.
+          Specify the color field to use with `tags`/`tag` widget.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="x-image-field" type="xsd:string">
       <xsd:annotation>
         <xsd:documentation>
-          specify the image field to use with `m2o` and `tag-select` widget.
+          specify the image field to use with `m2o` and `tags`/`tag` widget.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
@@ -4347,19 +4321,9 @@
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="output" type="xsd:string">
+        <xsd:attribute name="attachment" type="xsd:boolean">
           <xsd:annotation>
-            <xsd:documentation>
-              Override the default output directory structure.
-              Special keywords
-              ${name}, ${date}, ${datetime} can
-              be used to organize the output directory.
-            </xsd:documentation>
-          </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="download" type="xsd:boolean">
-          <xsd:annotation>
-            <xsd:documentation>Whether to download the exported file on client.</xsd:documentation>
+            <xsd:documentation>Whether to attach the exported file to current record</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
       </xsd:extension>
@@ -4454,6 +4418,10 @@
               <xsd:enumeration value="html" />
               <xsd:enumeration value="doc" />
               <xsd:enumeration value="xls" />
+              <xsd:enumeration value="docx" />
+              <xsd:enumeration value="xlsx" />
+              <xsd:enumeration value="odt" />
+              <xsd:enumeration value="ods" />
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>

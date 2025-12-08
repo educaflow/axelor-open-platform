@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.web.service;
 
@@ -38,6 +24,9 @@ import com.axelor.db.Repository;
 import com.axelor.db.mapper.Mapper;
 import com.axelor.db.mapper.Property;
 import com.axelor.dms.db.DMSFile;
+import com.axelor.file.store.FileStoreFactory;
+import com.axelor.file.store.Store;
+import com.axelor.file.temp.TempFiles;
 import com.axelor.inject.Beans;
 import com.axelor.mail.db.MailAddress;
 import com.axelor.mail.db.MailFollower;
@@ -57,13 +46,28 @@ import com.axelor.rpc.filter.Filter;
 import com.axelor.rpc.filter.JPQLFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.CaseFormat;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 import com.google.inject.servlet.RequestScoped;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HEAD;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.StreamingOutput;
+import jakarta.xml.bind.DatatypeConverter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -86,26 +90,10 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HEAD;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.StreamingOutput;
-import javax.xml.bind.DatatypeConverter;
 import org.jboss.resteasy.plugins.providers.multipart.InputPart;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
+
+import jakarta.ws.rs.QueryParam;
 
 @RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
@@ -141,8 +129,7 @@ public class RestService extends ResourceService {
             .filter(StringUtils::notEmpty)
             .orElse(";");
     if (separator.length() != 1) {
-      throw new IllegalArgumentException(
-          String.format("Illegal data export separator: %s", separator));
+      throw new IllegalArgumentException("Illegal data export separator: %s".formatted(separator));
     }
     CSV_SEPARATOR = separator.charAt(0);
   }
@@ -262,9 +249,10 @@ public class RestService extends ResourceService {
         Beans.get(JpaSecurity.class).getFilter(JpaSecurity.CAN_READ, DMSFile.class);
     final Filter filter =
         new JPQLFilter(
-            "self.relatedModel = :relatedModel "
-                + "AND self.relatedId = :relatedId "
-                + "AND COALESCE(self.isDirectory, FALSE) = FALSE");
+            """
+            self.relatedModel = :relatedModel \
+            AND self.relatedId = :relatedId \
+            AND COALESCE(self.isDirectory, FALSE) = FALSE""");
     return (securityFilter != null ? Filter.and(securityFilter, filter) : filter)
         .build(DMSFile.class)
         .bind("relatedModel", getModel())
@@ -279,8 +267,9 @@ public class RestService extends ResourceService {
   @Operation(
       summary = "Update a record",
       description =
-          "This service returns the updated record. "
-              + "**Important: Version number is used in order to ensure non-conflicting modifications of the record, and thus must be specified.**")
+          """
+          This service returns the updated record. \
+          **Important: Version number is used in order to ensure non-conflicting modifications of the record, and thus must be specified.**""")
   public Response update(@PathParam("id") long id, Request request) {
     if (request == null || isEmpty(request.getData())) {
       return fail();
@@ -303,8 +292,9 @@ public class RestService extends ResourceService {
   @Operation(
       summary = "Update records in mass",
       description =
-          "This service returns list of updated records. "
-              + "**Important: Version number is used in order to ensure non-conflicting modifications of the records, and thus must be specified.**")
+          """
+          This service returns list of updated records. \
+          **Important: Version number is used in order to ensure non-conflicting modifications of the records, and thus must be specified.**""")
   public Response updateMass(Request request) {
     if (request == null || isEmpty(request.getData())) {
       return fail();
@@ -322,7 +312,7 @@ public class RestService extends ResourceService {
   public Response delete(@PathParam("id") long id, @QueryParam("version") int version) {
     Request request = new Request();
     request.setModel(getModel());
-    request.setData(ImmutableMap.of("id", (Object) id, "version", version));
+    request.setData(Map.of("id", (Object) id, "version", version));
     return getResource().remove(id, request);
   }
 
@@ -365,7 +355,7 @@ public class RestService extends ResourceService {
   @Hidden
   public Response details(@PathParam("id") long id, @QueryParam("name") String name) {
     Request request = new Request();
-    Map<String, Object> data = new HashMap<String, Object>();
+    Map<String, Object> data = new HashMap<>();
 
     data.put("id", id);
     request.setModel(getModel());
@@ -394,7 +384,7 @@ public class RestService extends ResourceService {
   public Response upload(final MultipartFormDataInput input) throws IOException {
 
     final Map<String, List<InputPart>> formData = input.getFormDataMap();
-    final InputPart requestPart = formData.get("request").get(0);
+    final InputPart requestPart = formData.get("request").getFirst();
 
     final Request request =
         Beans.get(ObjectMapper.class).readValue(requestPart.getBodyAsString(), Request.class);
@@ -409,8 +399,8 @@ public class RestService extends ResourceService {
     MetaFiles.checkPath(safeFileName);
     MetaFiles.checkType(fileType);
 
-    final InputPart filePart = formData.get("file").get(0);
-    final InputPart fieldPart = formData.get("field").get(0);
+    final InputPart filePart = formData.get("file").getFirst();
+    final InputPart fieldPart = formData.get("field").getFirst();
     final boolean isAttachment = MetaFile.class.isAssignableFrom(entityClass());
     final String field = fieldPart.getBodyAsString();
     final InputStream fileStream = filePart.getBody(InputStream.class, null);
@@ -451,19 +441,19 @@ public class RestService extends ResourceService {
       "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
   @SuppressWarnings("all")
-  private javax.ws.rs.core.Response download(
+  private jakarta.ws.rs.core.Response download(
       MetaFile metaFile, String fileName, boolean checkOnly,boolean inline) {
     if (StringUtils.isBlank(fileName)) {
       fileName = (String) metaFile.getFileName();
     }
-    final String filePath = (String) metaFile.getFilePath();
-    final File inputFile = MetaFiles.getPath(filePath).toFile();
-    if (!inputFile.exists()) {
-      return javax.ws.rs.core.Response.status(Status.NOT_FOUND).build();
+
+    Store store = FileStoreFactory.getStore();
+    if (!store.hasFile(metaFile.getFilePath())) {
+      return jakarta.ws.rs.core.Response.status(Status.NOT_FOUND).build();
     }
 
     if (checkOnly) {
-      return javax.ws.rs.core.Response.ok().build();
+      return jakarta.ws.rs.core.Response.ok().build();
     }
 
     ContentDisposition.Builder contentDispositionBuilder;
@@ -473,19 +463,16 @@ public class RestService extends ResourceService {
       contentDispositionBuilder=ContentDisposition.attachment();
     }
 
-      return javax.ws.rs.core.Response.ok(
-            new StreamingOutput() {
-
-              @Override
-              public void write(OutputStream output) throws IOException, WebApplicationException {
-                uploadSave(new FileInputStream(inputFile), output);
-              }
-            })
-        .header("Content-Disposition",contentDispositionBuilder.filename(fileName).build().toString()).type(metaFile.getFileType()).build();
+    return jakarta.ws.rs.core.Response.ok(
+            (StreamingOutput) output -> uploadSave(store.getStream(metaFile.getFilePath()), output))
+        .header(
+            "Content-Disposition",
+                contentDispositionBuilder.filename(fileName).build().toString())
+        .build();
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private javax.ws.rs.core.Response download(
+  private jakarta.ws.rs.core.Response download(
       Long id,
       String field,
       boolean isImage,
@@ -509,15 +496,15 @@ public class RestService extends ResourceService {
     }
 
     if (!permitted && !getResource().isPermitted(JpaSecurity.CAN_READ, id)) {
-      return javax.ws.rs.core.Response.status(Status.FORBIDDEN).build();
+      return jakarta.ws.rs.core.Response.status(Status.FORBIDDEN).build();
     }
 
     if (bean == null) {
-      return javax.ws.rs.core.Response.status(Status.NOT_FOUND).build();
+      return jakarta.ws.rs.core.Response.status(Status.NOT_FOUND).build();
     }
 
-    if (bean instanceof MetaFile) {
-      return download((MetaFile) bean, fileName, checkOnly,inline);
+    if (bean instanceof MetaFile metaFile) {
+      return download(metaFile, fileName, checkOnly,inline);
     }
 
     if (StringUtils.isBlank(fileName)) {
@@ -525,38 +512,38 @@ public class RestService extends ResourceService {
     }
     Object data = mapper.get(bean, field);
 
-    if (data instanceof MetaFile) {
-      return download((MetaFile) data, fileName, checkOnly,inline);
+    if (data instanceof MetaFile metaFile) {
+      return download(metaFile, fileName, checkOnly,inline);
     }
 
     if (isImage) {
       if (checkOnly) {
-        return javax.ws.rs.core.Response.ok().build();
+        return jakarta.ws.rs.core.Response.ok().build();
       }
       String base64 = BLANK_IMAGE;
-      if (data instanceof byte[]) {
-        base64 = new String((byte[]) data);
+      if (data instanceof byte[] bytes) {
+        base64 = new String(bytes);
       }
       try {
         base64 = base64.substring(base64.indexOf(";base64,") + 8);
         data = DatatypeConverter.parseBase64Binary(base64);
       } catch (Exception e) {
       }
-      return javax.ws.rs.core.Response.ok(data).build();
+      return jakarta.ws.rs.core.Response.ok(data).build();
     }
 
     fileName = fileName.replaceAll("\\s", "") + "_" + id;
     fileName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, fileName);
 
     if (data == null) {
-      return javax.ws.rs.core.Response.noContent().build();
+      return jakarta.ws.rs.core.Response.noContent().build();
     }
 
     if (checkOnly) {
-      return javax.ws.rs.core.Response.ok().build();
+      return jakarta.ws.rs.core.Response.ok().build();
     }
 
-    return javax.ws.rs.core.Response.ok(data)
+    return jakarta.ws.rs.core.Response.ok(data)
         .header(
             "Content-Disposition",
             ContentDisposition.attachment().filename(fileName).build().toString())
@@ -566,7 +553,7 @@ public class RestService extends ResourceService {
   @HEAD
   @Path("{id}/{field}/download")
   @Hidden
-  public javax.ws.rs.core.Response downloadCheck(
+  public jakarta.ws.rs.core.Response downloadCheck(
       @PathParam("id") Long id,
       @PathParam("field") String field,
       @QueryParam("image") boolean isImage,
@@ -583,7 +570,7 @@ public class RestService extends ResourceService {
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @SuppressWarnings("all")
   @Hidden
-  public javax.ws.rs.core.Response download(
+  public jakarta.ws.rs.core.Response download(
       @PathParam("id") Long id,
       @PathParam("field") String field,
       @QueryParam("image") boolean isImage,
@@ -781,10 +768,10 @@ public class RestService extends ResourceService {
   @HEAD
   @Path("export/{name}")
   @Hidden
-  public javax.ws.rs.core.Response exportCheck(@PathParam("name") final String name) {
-    return Files.exists(MetaFiles.findTempFile(name))
-        ? javax.ws.rs.core.Response.ok().build()
-        : javax.ws.rs.core.Response.status(Status.NOT_FOUND).build();
+  public jakarta.ws.rs.core.Response exportCheck(@PathParam("name") final String name) {
+    return Files.exists(TempFiles.findTempFile(name))
+        ? jakarta.ws.rs.core.Response.ok().build()
+        : jakarta.ws.rs.core.Response.status(Status.NOT_FOUND).build();
   }
 
   @GET
@@ -793,20 +780,16 @@ public class RestService extends ResourceService {
   @Hidden
   public StreamingOutput export(@PathParam("name") final String name) {
 
-    final java.nio.file.Path temp = MetaFiles.findTempFile(name);
+    final java.nio.file.Path temp = TempFiles.findTempFile(name);
     if (Files.notExists(temp)) {
       throw new IllegalArgumentException(name);
     }
 
-    return new StreamingOutput() {
-
-      @Override
-      public void write(OutputStream output) throws IOException, WebApplicationException {
-        try (final InputStream is = new FileInputStream(temp.toFile())) {
-          uploadSave(is, output);
-        } finally {
-          Files.deleteIfExists(temp);
-        }
+    return output -> {
+      try (final InputStream is = new FileInputStream(temp.toFile())) {
+        uploadSave(is, output);
+      } finally {
+        Files.deleteIfExists(temp);
       }
     };
   }

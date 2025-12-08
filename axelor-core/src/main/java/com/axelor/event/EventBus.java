@@ -1,30 +1,17 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.event;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import com.google.inject.spi.LinkedKeyBinding;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.AbstractMap.SimpleImmutableEntry;
@@ -40,8 +27,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 class EventBus {
@@ -52,10 +37,7 @@ class EventBus {
       new AtomicReference<>();
 
   private final LoadingCache<Class<?>, Map<Entry<Type, Set<Annotation>>, List<Observer>>>
-      observersCache =
-          CacheBuilder.newBuilder()
-              .weakKeys()
-              .build(CacheLoader.from(k -> new ConcurrentHashMap<>()));
+      observersCache = Caffeine.newBuilder().weakKeys().build(k -> new ConcurrentHashMap<>());
 
   @Inject
   public EventBus(Injector injector) {
@@ -93,7 +75,7 @@ class EventBus {
   public void fire(Object event, Type eventType, Set<Annotation> qualifiers) {
     final Class<?> eventClass = event.getClass();
     final Map<Entry<Type, Set<Annotation>>, List<Observer>> observersByTypeAndQualifiers =
-        observersCache.getUnchecked(eventClass);
+        observersCache.get(eventClass);
     final List<Observer> foundObservers =
         observersByTypeAndQualifiers.computeIfAbsent(
             new SimpleImmutableEntry<>(eventType, qualifiers),

@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.auth;
 
@@ -29,16 +15,13 @@ import com.axelor.rpc.ActionRequest;
 import com.axelor.rpc.ActionResponse;
 import com.axelor.rpc.Context;
 import com.google.common.base.Preconditions;
+import jakarta.inject.Singleton;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.apache.shiro.authc.credential.DefaultPasswordService;
-import org.apache.shiro.crypto.hash.DefaultHashService;
 import org.apache.shiro.crypto.hash.format.ParsableHashFormat;
-import org.apache.shiro.crypto.hash.format.Shiro1CryptFormat;
 
 /**
  * The {@link AuthService} class provides various utility services including password encryption,
@@ -50,14 +33,10 @@ import org.apache.shiro.crypto.hash.format.Shiro1CryptFormat;
 @Singleton
 public class AuthService {
 
-  private static final String HASH_ALGORITHM = "SHA-512";
-  private static final int HASH_ITERATIONS = 500000;
-
   private final DefaultPasswordService passwordService = new DefaultPasswordService();
 
-  private final DefaultHashService hashService = new DefaultHashService();
-
-  private final ParsableHashFormat hashFormat = new Shiro1CryptFormat();
+  private final ParsableHashFormat hashFormat =
+      (ParsableHashFormat) passwordService.getHashFormat();
 
   private static final String PASSWORD_PATTERN;
   private static final String PASSWORD_PATTERN_TITLE;
@@ -72,15 +51,6 @@ public class AuthService {
             AvailableAppSettings.USER_PASSWORD_PATTERN_TITLE,
             AvailableAppSettings.USER_PASSWORD_PATTERN_TITLE);
     passwordPattern = Pattern.compile(PASSWORD_PATTERN);
-  }
-
-  @Inject
-  public AuthService() {
-    this.hashService.setHashAlgorithmName(HASH_ALGORITHM);
-    this.hashService.setHashIterations(HASH_ITERATIONS);
-    this.hashService.setGeneratePublicSalt(true);
-    this.passwordService.setHashService(hashService);
-    this.passwordService.setHashFormat(hashFormat);
   }
 
   /**
@@ -138,8 +108,8 @@ public class AuthService {
    * @return the same instance passed
    */
   public Object encrypt(Object user, @SuppressWarnings("rawtypes") Map context) {
-    if (user instanceof User) {
-      return encrypt((User) user);
+    if (user instanceof User userInstance) {
+      return encrypt(userInstance);
     }
     return user;
   }

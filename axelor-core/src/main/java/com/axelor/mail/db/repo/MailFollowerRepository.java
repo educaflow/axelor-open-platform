@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.mail.db.repo;
 
@@ -61,9 +47,9 @@ public class MailFollowerRepository extends JpaRepository<MailFollower> {
     final Long relatedId;
     final String relatedModel;
 
-    if (entity instanceof MailMessage) {
-      relatedId = ((MailMessage) entity).getRelatedId();
-      relatedModel = ((MailMessage) entity).getRelatedModel();
+    if (entity instanceof MailMessage message) {
+      relatedId = message.getRelatedId();
+      relatedModel = message.getRelatedModel();
     } else {
       relatedId = entity.getId();
       relatedModel = EntityHelper.getEntityClass(entity).getName();
@@ -87,9 +73,9 @@ public class MailFollowerRepository extends JpaRepository<MailFollower> {
     final Long relatedId;
     final String relatedModel;
 
-    if (entity instanceof MailMessage) {
-      relatedId = ((MailMessage) entity).getRelatedId();
-      relatedModel = ((MailMessage) entity).getRelatedModel();
+    if (entity instanceof MailMessage message) {
+      relatedId = message.getRelatedId();
+      relatedModel = message.getRelatedModel();
     } else {
       relatedId = entity.getId();
       relatedModel = EntityHelper.getEntityClass(entity).getName();
@@ -116,9 +102,9 @@ public class MailFollowerRepository extends JpaRepository<MailFollower> {
     final Long relatedId;
     final String relatedModel;
 
-    if (entity instanceof MailMessage) {
-      relatedId = ((MailMessage) entity).getRelatedId();
-      relatedModel = ((MailMessage) entity).getRelatedModel();
+    if (entity instanceof MailMessage message) {
+      relatedId = message.getRelatedId();
+      relatedModel = message.getRelatedModel();
     } else {
       relatedId = entity.getId();
       relatedModel = EntityHelper.getEntityClass(entity).getName();
@@ -259,9 +245,9 @@ public class MailFollowerRepository extends JpaRepository<MailFollower> {
     follower.setUser(user);
 
     // create menu
-    if (entity instanceof Team) {
-      ((Team) entity).addMember(user);
-      createOrDeleteMenu((Team) entity, user, false);
+    if (entity instanceof Team team) {
+      team.addMember(user);
+      createOrDeleteMenu(team, user, false);
     }
 
     save(follower);
@@ -315,9 +301,9 @@ public class MailFollowerRepository extends JpaRepository<MailFollower> {
     }
 
     // remove menu
-    if (entity instanceof Team) {
-      ((Team) entity).removeMember(user);
-      createOrDeleteMenu((Team) entity, user, true);
+    if (entity instanceof Team team) {
+      team.removeMember(user);
+      createOrDeleteMenu(team, user, true);
     }
   }
 

@@ -1,54 +1,37 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.db;
 
+import com.axelor.common.ObjectUtils;
 import com.axelor.db.mapper.Mapper;
 import com.axelor.db.mapper.Property;
 import com.axelor.db.mapper.PropertyType;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.google.inject.Provider;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.persistence.PersistenceException;
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
-import javax.persistence.OneToMany;
-import javax.persistence.OptimisticLockException;
-import javax.persistence.PersistenceException;
 import org.hibernate.CacheMode;
 import org.hibernate.HibernateException;
 import org.hibernate.MultiIdentifierLoadAccess;
@@ -135,7 +118,7 @@ public final class JPA {
   }
 
   private static boolean isAutoFlushEnabled() {
-    return !Objects.equal(
+    return !Objects.equals(
         "false", em().getEntityManagerFactory().getProperties().get("JPA.auto_flush"));
   }
 
@@ -236,7 +219,7 @@ public final class JPA {
     }
     final Class<T> klass = EntityHelper.getEntityClass(bean);
     final Model entity = JPA.em().find(klass, bean.getId());
-    if (entity == null || !Objects.equal(version, entity.getVersion())) {
+    if (entity == null || !Objects.equals(version, entity.getVersion())) {
       Exception cause = new StaleObjectStateException(klass.getName(), bean.getId());
       throw new OptimisticLockException(cause.getMessage(), cause, bean);
     }
@@ -263,7 +246,7 @@ public final class JPA {
     Model entity = id == null ? null : JPA.find(model, id);
 
     if (id != null && version != null) {
-      if (entity == null || !Objects.equal(version, entity.getVersion())) {
+      if (entity == null || !Objects.equals(version, entity.getVersion())) {
         Exception cause = new StaleObjectStateException(model.getName(), id);
         throw new OptimisticLockException(cause);
       }
@@ -276,24 +259,24 @@ public final class JPA {
       if (!(value instanceof Map || value instanceof Collection)) {
         continue;
       }
-      if (property.isCollection() && value instanceof Collection) {
+      if (property.isCollection() && value instanceof Collection collection) {
         int size = 0;
         try {
           size = ((Collection) property.get(entity)).size();
         } catch (Exception e) {
         }
-        if (size > ((Collection) value).size()) {
+        if (size > collection.size()) {
           Exception cause = new StaleObjectStateException(model.getName(), id);
           throw new OptimisticLockException(cause);
         }
       }
 
       if (value instanceof Map) {
-        value = Lists.newArrayList(value);
+        value = List.of(value);
       }
       for (Object item : (Collection<?>) value) {
-        if (item instanceof Map) {
-          verify((Class) property.getTarget(), (Map) item);
+        if (item instanceof Map map) {
+          verify((Class) property.getTarget(), map);
         }
       }
     }
@@ -310,7 +293,7 @@ public final class JPA {
    * @return a JPA managed object of the given model class
    */
   public static <T extends Model> T edit(Class<T> klass, Map<String, Object> values) {
-    Set<Model> visited = Sets.newHashSet();
+    Set<Model> visited = new HashSet<>();
     Multimap<String, Long> edited = HashMultimap.create();
     try {
       return _edit(klass, values, visited, edited);
@@ -385,14 +368,16 @@ public final class JPA {
         Collection items = new ArrayList();
         if (Set.class.isAssignableFrom(p.getJavaType())) items = new HashSet();
 
-        if (value instanceof Collection) {
-          for (Object val : (Collection) value) {
-            if (val instanceof Map) {
+        if (value instanceof Collection collection) {
+          for (Object val : collection) {
+            if (val instanceof Map map) {
               if (p.getMappedBy() != null) {
-                if (val instanceof ImmutableMap) val = Maps.newHashMap((Map) val);
-                ((Map) val).remove(p.getMappedBy());
+                if (!ObjectUtils.isMutable(map)) {
+                  map = new HashMap<>(map);
+                }
+                map.remove(p.getMappedBy());
               }
-              Model item = _edit(target, (Map) val, visited, edited);
+              Model item = _edit(target, map, visited, edited);
               items.add(p.setAssociation(item, bean));
             } else if (val instanceof Number) {
               items.add(JPA.find(target, Long.parseLong(val.toString())));
@@ -401,11 +386,11 @@ public final class JPA {
         }
 
         Object old = mapper.get(bean, name);
-        if (old instanceof Collection) {
-          boolean changed = ((Collection) old).size() != items.size();
+        if (old instanceof Collection collection) {
+          boolean changed = collection.size() != items.size();
           if (!changed) {
             for (Object item : items) {
-              if (!((Collection) old).contains(item)) {
+              if (!collection.contains(item)) {
                 changed = true;
                 break;
               }
@@ -413,7 +398,7 @@ public final class JPA {
           }
           if (changed) {
             if (p.isOrphan()) {
-              for (Object item : (Collection) old) {
+              for (Object item : collection) {
                 if (!items.contains(item)) {
                   p.setAssociation(item, null);
                 }
@@ -429,8 +414,8 @@ public final class JPA {
           p.addAll(bean, items);
         }
         value = items;
-      } else if (p.isReference() && value instanceof Map) {
-        value = _edit(target, (Map) value, visited, edited);
+      } else if (p.isReference() && value instanceof Map map) {
+        value = _edit(target, map, visited, edited);
       }
       Object oldValue = mapper.set(bean, name, value);
       if (p.valueChanged(bean, oldValue)) {
@@ -459,7 +444,7 @@ public final class JPA {
    * @return JPA managed model instance
    */
   public static <T extends Model> T manage(T bean) {
-    Set<Model> visited = Sets.newHashSet();
+    Set<Model> visited = new HashSet<>();
     try {
       T managed = _manage(bean, visited);
       if (EntityHelper.isUninitialized(managed)) {
@@ -486,8 +471,8 @@ public final class JPA {
       Object value = property.get(bean);
       if (value == null) continue;
 
-      if (value instanceof PersistentCollection && !((PersistentCollection) value).wasInitialized())
-        continue;
+      if (value instanceof PersistentCollection persistentCollection
+          && !persistentCollection.wasInitialized()) continue;
 
       // bind M2O
       if (property.isReference()) {
@@ -552,7 +537,7 @@ public final class JPA {
    * @return a copy of the given bean
    */
   public static <T extends Model> T copy(T bean, boolean deep) {
-    Set<String> visited = Sets.newHashSet();
+    Set<String> visited = new HashSet<>();
     try {
       return _copy(bean, deep, visited);
     } finally {
@@ -591,9 +576,9 @@ public final class JPA {
 
       Object value = p.get(bean);
 
-      if (value instanceof List && deep) {
-        List items = Lists.newArrayList();
-        for (Object item : (List) value) {
+      if (value instanceof List list && deep) {
+        List items = new ArrayList<>();
+        for (Object item : list) {
           Object val = copy((Model) item, true);
           // break bi-directional association
           p.setAssociation(val, null);
@@ -602,12 +587,12 @@ public final class JPA {
         value = items;
       } else if (value instanceof List) {
         value = null;
-      } else if (value instanceof Set) {
-        value = new HashSet((Set) value);
+      } else if (value instanceof Set set) {
+        value = new HashSet(set);
       }
 
-      if (value instanceof String && p.isUnique()) {
-        value = ((String) value) + " Copy (" + random + ")";
+      if (value instanceof String str && p.isUnique()) {
+        value = str + " Copy (" + random + ")";
       }
 
       p.set(obj, value);
@@ -623,7 +608,7 @@ public final class JPA {
    * @param task the task to run.
    */
   public static void runInTransaction(Runnable task) {
-    Preconditions.checkNotNull(task);
+    Objects.requireNonNull(task);
     EntityTransaction txn = em().getTransaction();
     boolean txnStarted = false;
     try {
@@ -642,15 +627,7 @@ public final class JPA {
     }
   }
 
-  /**
-   * Run the given <code>task</code> inside a transaction that is committed after the task is
-   * completed and return the task result.
-   *
-   * @param <T>
-   * @param task
-   * @return task result
-   */
-  public static <T> T withTransaction(Supplier<T> task) {
+  public static <T> T callInTransaction(Supplier<T> task) {
     final var holder =
         new Object() {
           T result;
@@ -671,13 +648,7 @@ public final class JPA {
   public static void jdbcWork(final JDBCWork work) {
     Session session = (Session) em().getDelegate();
     try {
-      session.doWork(
-          new org.hibernate.jdbc.Work() {
-            @Override
-            public void execute(Connection connection) throws SQLException {
-              work.execute(connection);
-            }
-          });
+      session.doWork(work::execute);
     } catch (HibernateException e) {
       throw new PersistenceException(e);
     }

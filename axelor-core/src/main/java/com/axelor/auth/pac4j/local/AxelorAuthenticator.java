@@ -1,22 +1,10 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.auth.pac4j.local;
+
+import static com.axelor.auth.pac4j.AxelorProfileManager.PENDING_USER_NAME;
 
 import com.axelor.auth.AuthService;
 import com.axelor.auth.AuthUtils;
@@ -24,8 +12,8 @@ import com.axelor.auth.db.User;
 import com.axelor.common.StringUtils;
 import com.axelor.db.JPA;
 import java.util.Objects;
-import org.pac4j.core.context.WebContext;
-import org.pac4j.core.context.session.SessionStore;
+import java.util.Optional;
+import org.pac4j.core.context.CallContext;
 import org.pac4j.core.credentials.Credentials;
 import org.pac4j.core.credentials.UsernamePasswordCredentials;
 import org.pac4j.core.credentials.authenticator.Authenticator;
@@ -50,8 +38,7 @@ public class AxelorAuthenticator implements Authenticator {
       "New password does not match pattern." /*)*/;
 
   @Override
-  public void validate(
-      Credentials inputCredentials, WebContext context, SessionStore sessionStore) {
+  public Optional<Credentials> validate(CallContext ctx, Credentials inputCredentials) {
     if (inputCredentials == null) {
       throw new BadCredentialsException(NO_CREDENTIALS);
     }
@@ -65,8 +52,8 @@ public class AxelorAuthenticator implements Authenticator {
     final String username = credentials.getUsername();
     final String password = credentials.getPassword();
     final String newPassword =
-        credentials instanceof AxelorFormCredentials
-            ? ((AxelorFormCredentials) credentials).getNewPassword()
+        credentials instanceof AxelorFormCredentials axelorFormCredentials
+            ? axelorFormCredentials.getNewPassword()
             : null;
 
     if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
@@ -120,9 +107,16 @@ public class AxelorAuthenticator implements Authenticator {
           });
     }
 
+    final var context = ctx.webContext();
+    final var sessionStore = ctx.sessionStore();
+
+    sessionStore.set(context, PENDING_USER_NAME, null);
+
     final CommonProfile profile = new CommonProfile();
     profile.setId(username);
     profile.addAttribute(Pac4jConstants.USERNAME, username);
     credentials.setUserProfile(profile);
+
+    return Optional.of(credentials);
   }
 }

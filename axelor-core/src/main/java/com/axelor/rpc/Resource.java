@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.rpc;
 
@@ -23,6 +9,7 @@ import static com.axelor.common.StringUtils.isBlank;
 import com.axelor.app.AppSettings;
 import com.axelor.app.AvailableAppSettings;
 import com.axelor.app.internal.AppFilter;
+import com.axelor.auth.AuthSecurityException;
 import com.axelor.auth.AuthSecurityWarner;
 import com.axelor.auth.AuthService;
 import com.axelor.auth.AuthUtils;
@@ -51,11 +38,11 @@ import com.axelor.events.PostRequest;
 import com.axelor.events.PreRequest;
 import com.axelor.events.RequestEvent;
 import com.axelor.events.qualifiers.EntityTypes;
+import com.axelor.file.temp.TempFiles;
 import com.axelor.i18n.I18n;
 import com.axelor.i18n.I18nBundle;
 import com.axelor.i18n.L10n;
 import com.axelor.inject.Beans;
-import com.axelor.meta.MetaFiles;
 import com.axelor.meta.MetaPermissions;
 import com.axelor.meta.MetaStore;
 import com.axelor.meta.db.MetaJsonRecord;
@@ -63,18 +50,18 @@ import com.axelor.meta.db.MetaTranslation;
 import com.axelor.meta.schema.views.Selection;
 import com.axelor.rpc.filter.Filter;
 import com.axelor.rpc.filter.JPQLFilter;
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.google.inject.TypeLiteral;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.inject.Provider;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.validation.ValidationException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -101,19 +88,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import javax.persistence.EntityTransaction;
-import javax.persistence.OptimisticLockException;
-import javax.validation.ValidationException;
 import org.apache.shiro.authz.UnauthorizedException;
 import org.hibernate.StaleObjectStateException;
 import org.slf4j.Logger;
@@ -191,7 +174,9 @@ public class Resource<T extends Model> {
     request.setModel(model.getName());
 
     List<Object> items =
-        Stream.of(records).map(item -> ImmutableMap.of("id", item)).collect(Collectors.toList());
+        Stream.of(records)
+            .map(item -> Collections.singletonMap("id", item))
+            .collect(Collectors.toList());
 
     request.setRecords(items);
 
@@ -211,8 +196,8 @@ public class Resource<T extends Model> {
     final Response response = new Response();
     final Repository<?> repository = JpaRepository.of(model);
 
-    final Map<String, Object> meta = Maps.newHashMap();
-    final List<Object> fields = Lists.newArrayList();
+    final Map<String, Object> meta = new HashMap<>();
+    final List<Object> fields = new ArrayList<>();
 
     if (repository == null) {
       for (Property p : JPA.fields(model)) {
@@ -237,14 +222,14 @@ public class Resource<T extends Model> {
 
     Response response = new Response();
 
-    List<String> data = Lists.newArrayList();
+    List<String> data = new ArrayList<>();
     for (Class<?> type : JPA.models()) {
       data.add(type.getName());
     }
 
     Collections.sort(data);
 
-    response.setData(ImmutableList.copyOf(data));
+    response.setData(List.copyOf(data));
     response.setStatus(Response.STATUS_SUCCESS);
 
     return response;
@@ -292,8 +277,8 @@ public class Resource<T extends Model> {
 
   private List<String> getSortBy(Request request) {
 
-    final List<String> sortBy = Lists.newArrayList();
-    final List<String> sortOn = Lists.newArrayList();
+    final List<String> sortBy = new ArrayList<>();
+    final List<String> sortOn = new ArrayList<>();
     final Mapper mapper = Mapper.of(model);
 
     boolean unique = false;
@@ -426,9 +411,8 @@ public class Resource<T extends Model> {
     }
 
     return new JPQLFilter(
-        String.format(
-            "self.id IN (SELECT __item.id FROM %s __parent JOIN __parent.%s __item WHERE __parent.id = ?)",
-            parentModel.getSimpleName(), property.getName()),
+        "self.id IN (SELECT __item.id FROM %s __parent JOIN __parent.%s __item WHERE __parent.id = ?)"
+            .formatted(parentModel.getSimpleName(), property.getName()),
         parentId);
   }
 
@@ -493,7 +477,7 @@ public class Resource<T extends Model> {
       if (txn.isActive()) {
         txn.rollback();
       }
-      data = Lists.newArrayList();
+      data = new ArrayList<>();
       LOG.error("Error: {}", e, e);
     }
 
@@ -551,7 +535,7 @@ public class Resource<T extends Model> {
     }
 
     final StringBuilder builder = new StringBuilder();
-    final List ids = Lists.newArrayList();
+    final List ids = new ArrayList<>();
 
     for (Object item : result) {
       ids.add(((Map) item).get("id"));
@@ -564,12 +548,12 @@ public class Resource<T extends Model> {
       parentName = (String) childOn.get("parent");
     }
 
-    ImmutableList.of(modelName, parentName).stream()
+    List.of(modelName, parentName).stream()
         .filter(name -> !NAME_PATTERN.matcher(name).matches())
         .findAny()
         .ifPresent(
             name -> {
-              throw new IllegalArgumentException(String.format("Invalid name: %s", name));
+              throw new IllegalArgumentException("Invalid name: %s".formatted(name));
             });
 
     builder
@@ -581,12 +565,12 @@ public class Resource<T extends Model> {
         .append(" AS _parent ")
         .append("WHERE _parent.id IN (:ids) GROUP BY _parent");
 
-    javax.persistence.Query q = JPA.em().createQuery(builder.toString());
+    jakarta.persistence.Query q = JPA.em().createQuery(builder.toString());
     q.setParameter("ids", ids);
 
     QueryBinder.of(q).setReadOnly();
 
-    Map counts = Maps.newHashMap();
+    Map counts = new HashMap<>();
     for (Object item : q.getResultList()) {
       counts.put(((Map) item).get("id"), ((Map) item).get("count"));
     }
@@ -637,7 +621,7 @@ public class Resource<T extends Model> {
     final Map<String, Object> data = new HashMap<>();
 
     try {
-      final java.nio.file.Path tempFile = MetaFiles.createTempFile(null, ".csv");
+      final java.nio.file.Path tempFile = TempFiles.createTempFile(null, ".csv");
       try (final OutputStream os = new FileOutputStream(tempFile.toFile())) {
         try (final Writer writer = new OutputStreamWriter(os, charset)) {
           if (StandardCharsets.UTF_8.equals(charset)) {
@@ -658,7 +642,7 @@ public class Resource<T extends Model> {
   }
 
   private static final Set<String> EXCLUDED_EXPORT_TYPES =
-      ImmutableSet.of("panel", "button", "label", "spacer", "separator");
+      Set.of("panel", "button", "label", "spacer", "separator");
 
   @SuppressWarnings("all")
   private int export(Request request, Writer writer, Locale locale, char separator)
@@ -678,11 +662,10 @@ public class Resource<T extends Model> {
         name ->
             jsonFieldsMap.computeIfAbsent(
                 name,
-                (n) -> {
-                  return MetaJsonRecord.class.isAssignableFrom(model)
-                      ? MetaStore.findJsonFields((String) request.getContext().get("jsonModel"))
-                      : MetaStore.findJsonFields(model.getName(), n);
-                });
+                (n) ->
+                    MetaJsonRecord.class.isAssignableFrom(model)
+                        ? MetaStore.findJsonFields((String) request.getContext().get("jsonModel"))
+                        : MetaStore.findJsonFields(model.getName(), n));
 
     final Function<String, List<String>> findJsonPaths =
         name -> {
@@ -693,8 +676,8 @@ public class Resource<T extends Model> {
                   .filter(
                       entry -> {
                         final Object value = entry.getValue();
-                        if (value instanceof Map) {
-                          return !EXCLUDED_EXPORT_TYPES.contains(((Map<?, ?>) value).get("type"));
+                        if (value instanceof Map<?, ?> mapInstance) {
+                          return !EXCLUDED_EXPORT_TYPES.contains(mapInstance.get("type"));
                         }
                         return true;
                       })
@@ -932,22 +915,22 @@ public class Resource<T extends Model> {
               .collect(Collectors.joining(", "));
     }
 
-    if (objValue instanceof String) {
+    if (objValue instanceof String string) {
       if (translatableNames.contains(names.get(index))) {
-        objValue = getValueTranslation(bundle, (String) objValue);
+        objValue = getValueTranslation(bundle, string);
       }
-    } else if (objValue instanceof Number) {
-      objValue = formatter.format((Number) objValue, false);
-    } else if (objValue instanceof LocalDate) {
-      objValue = formatter.format((LocalDate) objValue);
-    } else if (objValue instanceof LocalTime) {
-      objValue = formatter.format((LocalTime) objValue);
-    } else if (objValue instanceof LocalDateTime) {
-      objValue = formatter.format((LocalDateTime) objValue);
-    } else if (objValue instanceof ZonedDateTime) {
-      objValue = formatter.format((ZonedDateTime) objValue);
-    } else if (objValue instanceof Enum) {
-      objValue = getTranslation(bundle, getTitle((Enum<?>) objValue));
+    } else if (objValue instanceof Number number) {
+      objValue = formatter.format(number, false);
+    } else if (objValue instanceof LocalDate localDate) {
+      objValue = formatter.format(localDate);
+    } else if (objValue instanceof LocalTime localTime) {
+      objValue = formatter.format(localTime);
+    } else if (objValue instanceof LocalDateTime localDateTime) {
+      objValue = formatter.format(localDateTime);
+    } else if (objValue instanceof ZonedDateTime zonedDateTime) {
+      objValue = formatter.format(zonedDateTime);
+    } else if (objValue instanceof Enum<?> enumVal) {
+      objValue = getTranslation(bundle, getTitle(enumVal));
     }
     return objValue == null ? "" : objValue.toString();
   }
@@ -972,7 +955,7 @@ public class Resource<T extends Model> {
     final String key = "value:" + text;
     return Optional.ofNullable(bundle.getString(key))
         .filter(StringUtils::notBlank)
-        .filter(translation -> !Objects.equal(key, translation))
+        .filter(translation -> !Objects.equals(key, translation))
         .orElse(text);
   }
 
@@ -999,7 +982,7 @@ public class Resource<T extends Model> {
 
     Request request = newRequest(null, id);
     final Response response = new Response();
-    final List<Object> data = Lists.newArrayList();
+    final List<Object> data = new ArrayList<>();
 
     firePreRequestEvent(RequestEvent.READ, request);
 
@@ -1059,7 +1042,7 @@ public class Resource<T extends Model> {
 
   @SuppressWarnings("unchecked")
   protected Map<String, Object> toGraph(Model entity, Map<String, Object> select) {
-    final Map<String, Object> result = new HashMap<String, Object>();
+    final Map<String, Object> result = new HashMap<>();
     final Mapper mapper = Mapper.of(EntityHelper.getEntityClass(entity));
     final Property nameProperty =
         mapper.getNameField() == null ? mapper.getProperty("code") : mapper.getNameField();
@@ -1133,20 +1116,20 @@ public class Resource<T extends Model> {
               final String[] names = e.getValue().toArray(new String[] {});
               Object old = values.get(name);
               Object value = mapper.get(entity, name);
-              if (value instanceof Collection<?>) {
+              if (value instanceof Collection<?> collection) {
                 value =
-                    ((Collection<?>) value)
-                        .stream().map(input -> toMap(input, names)).collect(Collectors.toList());
-              } else if (value instanceof Model) {
-                final Model modelValue = (Model) value;
+                    collection.stream()
+                        .map(input -> toMap(input, names))
+                        .collect(Collectors.toList());
+              } else if (value instanceof Model modelValue) {
                 final Class<? extends Model> modelClass = EntityHelper.getEntityClass(modelValue);
                 if (jpaSecurity.isPermitted(JpaSecurity.CAN_READ, modelClass, modelValue.getId())) {
                   value = toMap(value, filterPermitted(value, names));
                 } else {
                   value = toMap(value, "id");
                 }
-                if (old instanceof Map) {
-                  value = mergeMaps((Map) value, (Map) old);
+                if (old instanceof Map map) {
+                  value = mergeMaps((Map) value, map);
                 }
               }
               values.put(name, value);
@@ -1162,8 +1145,8 @@ public class Resource<T extends Model> {
     for (String key : source.keySet()) {
       Object old = source.get(key);
       Object val = target.get(key);
-      if (val instanceof Map && old instanceof Map) {
-        mergeMaps((Map) val, (Map) old);
+      if (val instanceof Map map && old instanceof Map oldMap) {
+        mergeMaps(map, oldMap);
       } else if (val == null) {
         target.put(key, old);
       }
@@ -1181,8 +1164,8 @@ public class Resource<T extends Model> {
       Object value = entry.getValue();
       Object old = target.get(name);
 
-      if (value instanceof Map && old instanceof Map) {
-        value = mergeGraph((Map) old, (Map) value);
+      if (value instanceof Map map && old instanceof Map oldMap) {
+        value = mergeGraph(oldMap, map);
       }
 
       if (value instanceof Collection && old instanceof Collection) {
@@ -1193,7 +1176,7 @@ public class Resource<T extends Model> {
                 .map(
                     item ->
                         newItems.stream()
-                            .filter(x -> Objects.equal(x.get("id"), item.get("id")))
+                            .filter(x -> Objects.equals(x.get("id"), item.get("id")))
                             .findFirst()
                             .map(found -> mergeGraph(item, found))
                             .orElse(item))
@@ -1268,7 +1251,7 @@ public class Resource<T extends Model> {
 
     firePreRequestEvent(RequestEvent.SAVE, request);
 
-    final List<Object> data = Lists.newArrayList();
+    final List<Object> data = new ArrayList<>();
     final String[] names;
     if (request.getFields() != null) {
       names = request.getFields().toArray(new String[0]);
@@ -1309,8 +1292,8 @@ public class Resource<T extends Model> {
             Model bean = JPA.edit(model, (Map) record);
 
             // if user, update password
-            if (bean instanceof User) {
-              changeUserPassword((User) bean, (Map) record);
+            if (bean instanceof User user) {
+              changeUserPassword(user, (Map) record);
             }
 
             bean = JPA.manage(bean);
@@ -1382,6 +1365,7 @@ public class Resource<T extends Model> {
     checkRelationalPermissions(recordMap, Mapper.of(target));
   }
 
+  @SuppressWarnings("unchecked")
   public Response updateMass(Request request) {
 
     security.get().check(JpaSecurity.CAN_WRITE, model);
@@ -1395,6 +1379,7 @@ public class Resource<T extends Model> {
     firePreRequestEvent(RequestEvent.MASS_UPDATE, request);
 
     Response response = new Response();
+    MetaPermissions perms = Beans.get(MetaPermissions.class);
 
     Query<?> query = getQuery(request);
     List<?> data = request.getRecords();
@@ -1402,8 +1387,14 @@ public class Resource<T extends Model> {
     LOG.debug("JPQL: {}", query);
 
     @SuppressWarnings("all")
-    Map<String, Object> values = (Map) data.get(0);
-    final int total = JPA.withTransaction(() -> query.update(values, AuthUtils.getUser()));
+    Map<String, Object> values = (Map) data.getFirst();
+    for (Map.Entry<String, Object> entry : values.entrySet()) {
+      if (!perms.canWrite(AuthUtils.getUser(), model.getName(), entry.getKey())) {
+        final AuthSecurityException cause = new AuthSecurityException(AccessType.WRITE, model);
+        throw new UnauthorizedException(cause.getMessage(), cause);
+      }
+    }
+    final int total = JPA.callInTransaction(() -> query.update(values, AuthUtils.getUser()));
     response.setTotal(total);
 
     LOG.debug("Records updated: {}", response.getTotal());
@@ -1421,7 +1412,7 @@ public class Resource<T extends Model> {
     security.get().check(JpaSecurity.CAN_REMOVE, model, id);
     final Response response = new Response();
     final Repository repository = JpaRepository.of(model);
-    final Map<String, Object> data = Maps.newHashMap();
+    final Map<String, Object> data = new HashMap<>();
 
     data.put("id", id);
     data.put("version", request.getData().get("version"));
@@ -1431,7 +1422,7 @@ public class Resource<T extends Model> {
     firePreRequestEvent(RequestEvent.REMOVE, req);
 
     final Model removedBean =
-        JPA.withTransaction(
+        JPA.callInTransaction(
             () -> {
               Model bean = JPA.edit(model, data);
               if (bean.getId() != null) {
@@ -1444,7 +1435,7 @@ public class Resource<T extends Model> {
               return bean;
             });
 
-    response.setData(ImmutableList.of(toMapCompact(removedBean)));
+    response.setData(List.of(toMapCompact(removedBean)));
     response.setStatus(Response.STATUS_SUCCESS);
 
     firePostRequestEvent(RequestEvent.REMOVE, req, response);
@@ -1467,7 +1458,7 @@ public class Resource<T extends Model> {
 
     JPA.runInTransaction(
         () -> {
-          final List<Model> entities = Lists.newArrayList();
+          final List<Model> entities = new ArrayList<>();
 
           for (Object record : records) {
             Map map = (Map) record;
@@ -1481,7 +1472,7 @@ public class Resource<T extends Model> {
             security.get().check(JpaSecurity.CAN_REMOVE, model, id);
             Model bean = JPA.find(model, id);
 
-            if (bean == null || (version != null && !Objects.equal(version, bean.getVersion()))) {
+            if (bean == null || (version != null && !Objects.equals(version, bean.getVersion()))) {
               throw new OptimisticLockException(new StaleObjectStateException(model.getName(), id));
             }
             entities.add(bean);
@@ -1539,7 +1530,7 @@ public class Resource<T extends Model> {
     // break bi-directional links
     fixLinks(bean);
 
-    response.setData(ImmutableList.of(bean));
+    response.setData(List.of(bean));
     response.setStatus(Response.STATUS_SUCCESS);
 
     firePostRequestEvent(RequestEvent.COPY, request, response);
@@ -1590,7 +1581,7 @@ public class Resource<T extends Model> {
     Mapper mapper = Mapper.of(model);
     Map<String, Object> data = request.getData();
 
-    String name = request.getFields().get(0);
+    String name = request.getFields().getFirst();
 
     if (name == null) {
       name = "id";
@@ -1610,7 +1601,7 @@ public class Resource<T extends Model> {
       if (p != null && p.isJson()) {
         selectName = func.toString();
       } else {
-        selectName = String.format("self.%s", name);
+        selectName = "self.%s".formatted(name);
       }
     }
 
@@ -1631,17 +1622,16 @@ public class Resource<T extends Model> {
 
     if (selectName != null) {
       String qs =
-          String.format(
-              "SELECT %s FROM %s self WHERE self.id = :id", selectName, model.getSimpleName());
+          "SELECT %s FROM %s self WHERE self.id = :id".formatted(selectName, model.getSimpleName());
 
-      javax.persistence.Query query = JPA.em().createQuery(qs);
+      jakarta.persistence.Query query = JPA.em().createQuery(qs);
       QueryBinder.of(query).setCacheable().setReadOnly().bind(data);
 
       Object value = query.getSingleResult();
       data.put(name, value);
     }
 
-    response.setData(ImmutableList.of(data));
+    response.setData(List.of(data));
     response.setStatus(Response.STATUS_SUCCESS);
 
     firePostRequestEvent(RequestEvent.FETCH_NAME, req, response);
@@ -1746,10 +1736,10 @@ public class Resource<T extends Model> {
     bean = EntityHelper.getEntity(bean);
 
     if (fields == null) {
-      fields = Maps.newHashMap();
+      fields = new HashMap<>();
     }
 
-    Map<String, Object> result = new HashMap<String, Object>();
+    Map<String, Object> result = new HashMap<>();
     Mapper mapper = Mapper.of(bean.getClass());
 
     boolean isSaved = ((Model) bean).getId() != null;
@@ -1820,8 +1810,7 @@ public class Resource<T extends Model> {
 
       // decimal values should be rounded accordingly otherwise the
       // json mapper may use wrong scale.
-      if (value instanceof BigDecimal) {
-        BigDecimal decimal = (BigDecimal) value;
+      if (value instanceof BigDecimal decimal) {
         int scale = prop.getScale();
         if (decimal.scale() == 0 && scale > 0 && scale != decimal.scale()) {
           value = decimal.setScale(scale, RoundingMode.HALF_UP);
@@ -1834,7 +1823,7 @@ public class Resource<T extends Model> {
       }
 
       if (value instanceof Collection) { // o2m | m2m
-        List<Object> items = Lists.newArrayList();
+        List<Object> items = new ArrayList<>();
         for (Model input : (Collection<Model>) value) {
           Map<String, Object> item;
           if (input.getId() != null) {
@@ -1856,11 +1845,11 @@ public class Resource<T extends Model> {
       }
 
       // include custom enum value
-      if (prop.isEnum() && value instanceof ValueEnum<?>) {
+      if (prop.isEnum() && value instanceof ValueEnum<?> valueEnum) {
         String enumName = ((Enum<?>) value).name();
-        Object enumValue = ((ValueEnum<?>) value).getValue();
-        if (!Objects.equal(enumName, enumValue)) {
-          result.put(name + "$value", ((ValueEnum<?>) value).getValue());
+        Object enumValue = valueEnum.getValue();
+        if (!Objects.equals(enumName, enumValue)) {
+          result.put(name + "$value", valueEnum.getValue());
         }
       }
     }
@@ -1870,7 +1859,7 @@ public class Resource<T extends Model> {
 
   @SuppressWarnings("all")
   protected static Map<String, Object> unflatten(Map<String, Object> map, String... names) {
-    if (map == null) map = Maps.newHashMap();
+    if (map == null) map = new HashMap<>();
     if (names == null) return map;
     for (String name : names) {
       if (map.containsKey(name)) continue;
@@ -1878,11 +1867,11 @@ public class Resource<T extends Model> {
         String[] parts = name.split("\\.", 2);
         Map<String, Object> child = (Map) map.get(parts[0]);
         if (child == null) {
-          child = Maps.newHashMap();
+          child = new HashMap<>();
         }
         map.put(parts[0], unflatten(child, parts[1]));
       } else {
-        map.put(name, Maps.newHashMap());
+        map.put(name, new HashMap<>());
       }
     }
     return map;

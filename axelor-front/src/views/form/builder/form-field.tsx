@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type JSX,
 } from "react";
 
 import {
@@ -95,7 +96,7 @@ export function FieldControl({
   titleActions,
   children,
 }: FieldControlProps<any>) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [labelClassName, contentClassName] = useFieldClassNames(schema);
   const canShowTitle =
     showTitle ?? schema.showTitle ?? schema.widgetAttrs?.showTitle ?? true;

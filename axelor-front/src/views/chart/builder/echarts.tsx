@@ -20,14 +20,14 @@ export function ECharts({
   onClick,
 }: Pick<ChartProps, "data" | "legend" | "onClick"> & {
   type: ChartType;
-  height: number | string;
-  width: number | string;
+  height: number;
+  width: number;
   options: Partial<echarts.EChartsOption>;
   isMerge: boolean;
   lazyUpdate: boolean;
 }) {
   const divRef = useRef<HTMLDivElement>(null);
-  const chart = useRef<echarts.ECharts | null>(null);
+  const chart = useRef<echarts.ECharts>(null);
   const theme = useAppTheme();
   const isRTL = useTheme().dir === "rtl";
 
@@ -95,7 +95,7 @@ export function ECharts({
             legend: undefined,
           }),
           color: getColor(type, data.config?.colors, data.config?.shades),
-        } as echarts.EChartOption,
+        } as echarts.EChartsOption,
         !isMerge,
         lazyUpdate,
       );

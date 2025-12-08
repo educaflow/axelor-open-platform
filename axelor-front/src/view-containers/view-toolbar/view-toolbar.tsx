@@ -1,6 +1,6 @@
 import { useAtom, useAtomValue } from "jotai";
 import { selectAtom, useAtomCallback } from "jotai/utils";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 
 import {
   Box,
@@ -168,13 +168,13 @@ export function ToolbarActions({
   actionContext?: DataContext;
   buttons?: Button[];
   menus?: Menu[];
-  parentRef?: React.RefObject<HTMLDivElement>;
+  parentRef?: React.RefObject<HTMLDivElement | null>;
   parentWidth?: number;
 }) {
   const { action } = useViewTab();
   const actionContext = _actionContext ?? action.context;
 
-  const innerRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const responsive = useMemo(() => {
     // Compute total width of children, excluding responsive dropdown menu.
     let width = innerRef.current?.offsetWidth ?? 0;

@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.tools.code.entity.model;
 
@@ -37,6 +23,13 @@ import com.axelor.tools.code.JavaDoc;
 import com.axelor.tools.code.JavaField;
 import com.axelor.tools.code.JavaMethod;
 import com.axelor.tools.code.JavaType;
+import jakarta.xml.bind.Unmarshaller;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElements;
+import jakarta.xml.bind.annotation.XmlMixed;
+import jakarta.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlType;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -48,13 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElements;
-import javax.xml.bind.annotation.XmlMixed;
-import javax.xml.bind.annotation.XmlTransient;
-import javax.xml.bind.annotation.XmlType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,6 +151,8 @@ public class Entity implements BaseType<Entity> {
   private String extraImportsModel;
 
   @XmlTransient Entity baseEntity;
+
+  @XmlTransient boolean isInSingleTableHierarchy;
 
   void afterUnmarshal(Unmarshaller unmarshaller, Object parent) {
     final Namespace ns = ((DomainModels) parent).getNamespace();
@@ -504,6 +492,10 @@ public class Entity implements BaseType<Entity> {
     return superClass;
   }
 
+  public String getSimpleSuperClass() {
+    return superClass != null ? superClass.substring(superClass.lastIndexOf('.') + 1) : null;
+  }
+
   private Boolean hasExtends() {
     return !isModelClass() && notBlank(superClass);
   }
@@ -587,7 +579,6 @@ public class Entity implements BaseType<Entity> {
     return extraImports;
   }
 
-
   public String getExtraCodeModel() {
     return extraCodeModel;
   }
@@ -596,16 +587,23 @@ public class Entity implements BaseType<Entity> {
     return extraImportsModel;
   }
 
+  public boolean isInSingleTableHierarchy() {
+    return isInSingleTableHierarchy;
+  }
+
+  public void setInSingleTableHierarchy(boolean isInSingleTableHierarchy) {
+    this.isInSingleTableHierarchy = isInSingleTableHierarchy;
+  }
 
   private JavaAnnotation $entity() {
-    return isTrue(mappedSuperClass) ? null : new JavaAnnotation("javax.persistence.Entity");
+    return isTrue(mappedSuperClass) ? null : new JavaAnnotation("jakarta.persistence.Entity");
   }
 
   private JavaAnnotation $table() {
-    if (isBlank(table) || isTrue(mappedSuperClass)) return null;
+    if (isBlank(table) || isTrue(mappedSuperClass) || isInSingleTableHierarchy) return null;
 
     JavaAnnotation annotation =
-        new JavaAnnotation("javax.persistence.Table").param("name", "{0:s}", table);
+        new JavaAnnotation("jakarta.persistence.Table").param("name", "{0:s}", table);
 
     List<Index> indexes = new ArrayList<>(getIndexes());
 
@@ -620,17 +618,17 @@ public class Entity implements BaseType<Entity> {
   private JavaAnnotation $cacheable() {
     if (isModelClass() || cacheable == null) return null;
     if (isTrue(cacheable)) {
-      return new JavaAnnotation("javax.persistence.Cacheable");
+      return new JavaAnnotation("jakarta.persistence.Cacheable");
     }
     if (isFalse(cacheable)) {
-      return new JavaAnnotation("javax.persistence.Cacheable").param("value", "false");
+      return new JavaAnnotation("jakarta.persistence.Cacheable").param("value", "false");
     }
     return null;
   }
 
   private JavaAnnotation $mappedSuperClass() {
     return isTrue(mappedSuperClass)
-        ? new JavaAnnotation("javax.persistence.MappedSuperclass")
+        ? new JavaAnnotation("jakarta.persistence.MappedSuperclass")
         : null;
   }
 
@@ -641,13 +639,13 @@ public class Entity implements BaseType<Entity> {
     if (strategy.equals("JOINED")) type = "JOINED";
     if (strategy.equals("CLASS")) type = "TABLE_PER_CLASS";
 
-    return new JavaAnnotation("javax.persistence.Inheritance")
-        .param("strategy", "{0:m}", "javax.persistence.InheritanceType." + type);
+    return new JavaAnnotation("jakarta.persistence.Inheritance")
+        .param("strategy", "{0:m}", "jakarta.persistence.InheritanceType." + type);
   }
 
   private JavaAnnotation $listeners() {
     if (listeners == null || listeners.isEmpty()) return null;
-    return new JavaAnnotation("javax.persistence.EntityListeners")
+    return new JavaAnnotation("jakarta.persistence.EntityListeners")
         .param("value", listeners, t -> new JavaCode("{0:t}.class", t.getClazz()));
   }
 
@@ -748,16 +746,16 @@ public class Entity implements BaseType<Entity> {
 
     var conditions =
         data.stream()
-            .map(p -> p.getName())
-            .map(n -> getterName(n))
-            .map(n -> String.format("Objects.equals(%s(), other.%s())", n, n))
+            .map(Property::getName)
+            .map(Utils::getterName)
+            .map(n -> "Objects.equals(%s(), other.%s())".formatted(n, n))
             .collect(Collectors.joining("\n  && "));
 
     var nullconditions =
         data.stream()
-            .map(p -> p.getName())
-            .map(n -> getterName(n))
-            .map(n -> String.format("%s() != null", n))
+            .map(Property::getName)
+            .map(Utils::getterName)
+            .map("%s() != null"::formatted)
             .collect(Collectors.joining("\n    || "));
 
     method.code("return " + conditions);
@@ -844,9 +842,9 @@ public class Entity implements BaseType<Entity> {
           new JavaField("selected", "boolean", Modifier.PRIVATE | Modifier.TRANSIENT);
       JavaField archived = new JavaField("archived", "Boolean", Modifier.PRIVATE);
 
-      cid.annotation(new JavaAnnotation("javax.persistence.Transient"));
-      version.annotation(new JavaAnnotation("javax.persistence.Version"));
-      selected.annotation(new JavaAnnotation("javax.persistence.Transient"));
+      cid.annotation(new JavaAnnotation("jakarta.persistence.Transient"));
+      version.annotation(new JavaAnnotation("jakarta.persistence.Version"));
+      selected.annotation(new JavaAnnotation("jakarta.persistence.Transient"));
       archived.annotation(
           new JavaAnnotation("com.axelor.db.annotations.Widget").param("massUpdate", "true"));
 
@@ -882,7 +880,7 @@ public class Entity implements BaseType<Entity> {
     }
 
     getComments().stream()
-        .filter(s -> notBlank(s))
+        .filter(Utils::notBlank)
         .findFirst()
         .ifPresent(
             comment -> {

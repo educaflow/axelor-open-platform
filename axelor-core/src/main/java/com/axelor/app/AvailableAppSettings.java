@@ -1,25 +1,11 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.app;
 
 import org.hibernate.cache.jcache.ConfigSettings;
-import org.hibernate.cfg.Environment;
+import org.hibernate.cfg.CacheSettings;
 
 public interface AvailableAppSettings {
 
@@ -51,6 +37,7 @@ public interface AvailableAppSettings {
 
   String APPLICATION_SCRIPT_CACHE_SIZE = "application.script.cache.size";
   String APPLICATION_SCRIPT_CACHE_EXPIRE_TIME = "application.script.cache.expire-time";
+  String APPLICATION_SCRIPT_TIMEOUT = "application.script.timeout";
 
   String APPLICATION_DOMAIN_BLOCKLIST_PATTERN = "application.domain-blocklist-pattern";
 
@@ -66,6 +53,19 @@ public interface AvailableAppSettings {
 
   String APPLICATION_RESET_PASSWORD_ENABLED = "application.reset-password.enabled";
   String APPLICATION_RESET_PASSWORD_MAX_AGE = "application.reset-password.max-age";
+
+  String APPLICATION_CACHE_PROVIDER = "application.cache.provider";
+  String APPLICATION_CACHE_CONFIG_PREFIX = "application.cache.config.";
+  String APPLICATION_CACHE_CONFIG_PATH = APPLICATION_CACHE_CONFIG_PREFIX + "path";
+
+  String APPLICATION_CACHE_HIBERNATE_PROVIDER = "application.cache.hibernate.provider";
+  String APPLICATION_CACHE_HIBERNATE_CONFIG_PREFIX = "application.cache.hibernate.config.";
+  String APPLICATION_CACHE_HIBERNATE_CONFIG_PATH =
+      APPLICATION_CACHE_HIBERNATE_CONFIG_PREFIX + "path";
+
+  String APPLICATION_CACHE_SHIRO_PROVIDER = "application.cache.shiro.provider";
+  String APPLICATION_CACHE_SHIRO_CONFIG_PREFIX = "application.cache.shiro.config.";
+  String APPLICATION_CACHE_SHIRO_CONFIG_PATH = APPLICATION_CACHE_SHIRO_CONFIG_PREFIX + "path";
 
   String VIEW_SINGLE_TAB = "view.single-tab";
   String VIEW_TABS_MAX = "view.max-tabs";
@@ -95,7 +95,9 @@ public interface AvailableAppSettings {
 
   String TEMPLATE_SEARCH_DIR = "template.search-dir";
 
+  String DATA_STORE_PROVIDER = "data.store.provider";
   String DATA_UPLOAD_DIR = "data.upload.dir";
+  String DATA_UPLOAD_TEMP_DIR = "data.upload.temp-dir";
   String FILE_UPLOAD_SIZE = "data.upload.max-size";
   String FILE_UPLOAD_FILENAME_PATTERN = "data.upload.filename-pattern";
   String FILE_UPLOAD_WHITELIST_PATTERN = "data.upload.allowlist.pattern";
@@ -103,7 +105,6 @@ public interface AvailableAppSettings {
   String FILE_UPLOAD_WHITELIST_TYPES = "data.upload.allowlist.types";
   String FILE_UPLOAD_BLACKLIST_TYPES = "data.upload.blocklist.types";
 
-  String DATA_EXPORT_DIR = "data.export.dir";
   String DATA_EXPORT_MAX_SIZE = "data.export.max-size";
   String DATA_EXPORT_FETCH_SIZE = "data.export.fetch-size";
   String DATA_EXPORT_ENCODING = "data.export.encoding";
@@ -113,6 +114,28 @@ public interface AvailableAppSettings {
   String DATA_EXPORT_COLLECTIONS_SEPARATOR = "data.export.collections.separator";
 
   String DATA_IMPORT_DEMO_DATA = "data.import.demo-data";
+
+  String DATA_OBJECT_STORAGE_ENABLED = "data.object-storage.enabled";
+  String DATA_OBJECT_STORAGE_ENDPOINT = "data.object-storage.endpoint";
+  String DATA_OBJECT_STORAGE_PATH_STYLE = "data.object-storage.path-style";
+  String DATA_OBJECT_STORAGE_SECURE = "data.object-storage.secure";
+  String DATA_OBJECT_STORAGE_ACCESS_KEY = "data.object-storage.access-key";
+  String DATA_OBJECT_STORAGE_SECRET_KEY = "data.object-storage.secret-key";
+  String DATA_OBJECT_STORAGE_BUCKET = "data.object-storage.bucket";
+  String DATA_OBJECT_STORAGE_REGION = "data.object-storage.region";
+  String DATA_OBJECT_STORAGE_ENCRYPTION = "data.object-storage.encryption";
+  String DATA_OBJECT_STORAGE_ENCRYPTION_KMS_KEY_ID = "data.object-storage.encryption-kms-key-id";
+  String DATA_OBJECT_STORAGE_STORAGE_CLASS = "data.object-storage.storage-class";
+
+  String DATA_OBJECT_STORAGE_AWS_CONFIG_FILENAME = "data.object-storage.aws-config.filename";
+  String DATA_OBJECT_STORAGE_AWS_CONFIG_PROFILE = "data.object-storage.aws-config.profile";
+  String DATA_OBJECT_STORAGE_IAM_AWS_CUSTOM_ENDPOINT =
+      "data.object-storage.iam-aws.custom-endpoint";
+
+  String DATA_OBJECT_STORAGE_CACHE_ENABLED = "data.object-storage.cache.enabled";
+  String DATA_OBJECT_STORAGE_CACHE_MAX_ENTRIES = "data.object-storage.cache.max-entries";
+  String DATA_OBJECT_STORAGE_CACHE_TIME_TO_LIVE = "data.object-storage.cache.time-to-live";
+  String DATA_OBJECT_STORAGE_CACHE_CLEAN_FREQUENCY = "data.object-storage.cache.clean-frequency";
 
   String CORS_ALLOW_ORIGIN = "cors.allow-origin";
   String CORS_ALLOW_CREDENTIALS = "cors.allow-credentials";
@@ -126,6 +149,9 @@ public interface AvailableAppSettings {
 
   String QUARTZ_ENABLE = "quartz.enable";
   String QUARTZ_THREAD_COUNT = "quartz.thread-count";
+  String QUARTZ_JOB_STORE_PREFIX = "quartz.job-store.";
+  String QUARTZ_JOB_STORE_CLASS = QUARTZ_JOB_STORE_PREFIX + "class";
+  String QUARTZ_DATA_SOURCE_PREFIX = "quartz.data-source.";
 
   String USER_PASSWORD_PATTERN = "user.password.pattern";
   String USER_PASSWORD_PATTERN_TITLE = /*$$(*/ "user.password.pattern-title" /*)*/;
@@ -142,10 +168,11 @@ public interface AvailableAppSettings {
   String HIBERNATE_JDBC_BATCH_SIZE = "hibernate.jdbc.batch_size";
   String HIBERNATE_JDBC_FETCH_SIZE = "hibernate.jdbc.fetch_size";
 
-  String HIBERNATE_CACHE_REGION_FACTORY = Environment.CACHE_REGION_FACTORY;
+  String HIBERNATE_CACHE_REGION_FACTORY = CacheSettings.CACHE_REGION_FACTORY;
+  String HIBERNATE_CACHE_REGION_PREFIX = CacheSettings.CACHE_REGION_PREFIX;
   String HIBERNATE_JAVAX_CACHE_PROVIDER = ConfigSettings.PROVIDER;
 
-  String JAVAX_PERSISTENCE_SHARED_CACHE_MODE = Environment.JPA_SHARED_CACHE_MODE;
+  String JAVAX_PERSISTENCE_SHARED_CACHE_MODE = CacheSettings.JAKARTA_SHARED_CACHE_MODE;
 
   String MAIL_SMTP_HOST = "mail.smtp.host";
   String MAIL_SMTP_PORT = "mail.smtp.port";
@@ -195,9 +222,11 @@ public interface AvailableAppSettings {
   String AUTH_LDAP_USER_DN_FORMAT = "auth.ldap.user.dn-format";
   String AUTH_LDAP_USER_ID_ATTRIBUTE = "auth.ldap.user.id-attribute";
   String AUTH_LDAP_USER_USERNAME_ATTRIBUTE = "auth.ldap.user.username-attribute";
+  String AUTH_LDAP_USER_SEARCH_SUBTREE = "auth.ldap.user.search.subtree";
 
   String AUTH_LDAP_GROUP_BASE = "auth.ldap.group.base";
   String AUTH_LDAP_GROUP_FILTER = "auth.ldap.group.filter";
+  String AUTH_LDAP_GROUP_SEARCH_SUBTREE = "auth.ldap.group.search.subtree";
 
   String AUTH_LDAP_SERVER_SSL_TRUST_STORE_PATH = "auth.ldap.server.ssl.trust-store.path";
   String AUTH_LDAP_SERVER_SSL_TRUST_STORE_PASSWORD = "auth.ldap.server.ssl.trust-store.password";

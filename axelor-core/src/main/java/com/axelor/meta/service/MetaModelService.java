@@ -1,20 +1,6 @@
 /*
- * Axelor Business Solutions
- *
- * Copyright (C) 2005-2025 Axelor (<http://axelor.com>).
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: Axelor <https://axelor.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 package com.axelor.meta.service;
 
@@ -28,18 +14,18 @@ import com.axelor.meta.db.MetaModel;
 import com.axelor.meta.db.repo.MetaFieldRepository;
 import com.axelor.meta.db.repo.MetaModelRepository;
 import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import javax.inject.Inject;
-import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
 import org.hibernate.annotations.Formula;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +84,7 @@ public class MetaModelService {
       metaModel.setTableName(klass.getAnnotation(Table.class).name());
     }
 
-    metaModel.setMetaFields(new ArrayList<MetaField>());
+    metaModel.setMetaFields(new ArrayList<>());
     metaModel.getMetaFields().addAll(this.createFields(metaModel, klass));
 
     return metaModel;
@@ -212,7 +198,7 @@ public class MetaModelService {
    */
   private List<MetaField> createFields(MetaModel metaModel, Class<?> klass) {
 
-    List<MetaField> modelFields = new ArrayList<MetaField>();
+    List<MetaField> modelFields = new ArrayList<>();
     Mapper mapper = Mapper.of(klass);
 
     for (Property property : mapper.getProperties()) {
@@ -241,9 +227,8 @@ public class MetaModelService {
     Type type = field.getGenericType();
     String typeName = null;
 
-    if (type instanceof ParameterizedType) {
-      ParameterizedType pt = (ParameterizedType) type;
-      for (Type t : pt.getActualTypeArguments()) {
+    if (type instanceof ParameterizedType parameterizedType) {
+      for (Type t : parameterizedType.getActualTypeArguments()) {
         typeName = t.toString();
       }
     }

@@ -145,7 +145,7 @@ export async function removeFilter(filter: SavedFilter) {
     method: "POST",
     body: {
       data: {
-        context: { name: filter.name, filterView: filter.filterView },
+        context: { id: filter.id, filterView: filter.filterView },
         model,
       },
       model,
@@ -340,6 +340,7 @@ export type ActionOptions = {
 export type ActionResult = {
   pending?: string;
   exportFile?: string;
+  exportToken?: string;
   signal?: string;
   signalData?: any;
   info?: {

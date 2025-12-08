@@ -91,7 +91,7 @@ export function Button(props: WidgetProps) {
   const { showTitle = true, icon, help, inGridEditor } = schema;
 
   const [titleHelp, setTitleHelp] = useState("");
-  const btnTextRef = useRef<HTMLSpanElement | null>(null);
+  const btnTextRef = useRef<HTMLSpanElement>(null);
   const { data: sessionInfo } = useSession();
   const { attrs } = useAtomValue(widgetAtom);
   const { actionExecutor } = useFormScope();
