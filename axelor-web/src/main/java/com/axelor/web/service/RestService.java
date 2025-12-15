@@ -13,6 +13,7 @@ import com.axelor.app.internal.AppFilter;
 import com.axelor.auth.AuthUtils;
 import com.axelor.auth.db.User;
 import com.axelor.common.FileUtils;
+import com.axelor.common.MimeTypesUtils;
 import com.axelor.common.StringUtils;
 import com.axelor.common.http.ContentDisposition;
 import com.axelor.db.EntityHelper;
@@ -463,12 +464,11 @@ public class RestService extends ResourceService {
       contentDispositionBuilder=ContentDisposition.attachment();
     }
 
-    return jakarta.ws.rs.core.Response.ok(
-            (StreamingOutput) output -> uploadSave(store.getStream(metaFile.getFilePath()), output))
-        .header(
-            "Content-Disposition",
-                contentDispositionBuilder.filename(fileName).build().toString())
-        .build();
+    Object content=(StreamingOutput) output -> uploadSave(store.getStream(metaFile.getFilePath()), output);
+    final MediaType type = MediaType.valueOf(MimeTypesUtils.getContentType(fileName));
+    final jakarta.ws.rs.core.Response.ResponseBuilder builder = jakarta.ws.rs.core.Response.ok(content, type);
+
+    return builder.header("Content-Disposition", contentDispositionBuilder.filename(fileName).build().toString()).build();
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
