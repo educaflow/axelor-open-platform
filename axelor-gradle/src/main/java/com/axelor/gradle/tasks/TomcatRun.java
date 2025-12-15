@@ -20,8 +20,8 @@ public class TomcatRun extends AbstractRunTask {
     this.args("--port", port);
   }
 
-  @Option(option = "contextPath", description = "Specify the tomcat server contextPath (default /).")
-  public void setContextPath(String contextPath) {
+  @Option(option = "context-path", description = "Specify the tomcat server contextPath (default /).")
+  public void setContextpath(String contextPath) {
     this.args("--context-path",contextPath);
   }
 
