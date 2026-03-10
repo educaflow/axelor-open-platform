@@ -4,6 +4,8 @@
  */
 package com.axelor.db;
 
+import com.axelor.db.annotations.EnumWidget;
+
 import java.util.Objects;
 
 /** Enum type fields with custom values should implement this interface. */
@@ -50,4 +52,53 @@ public interface ValueEnum<T> {
     throw new IllegalArgumentException(
         "No enum constant found in " + enumType.getCanonicalName() + " for value: " + value);
   }
+
+  /**
+   * Obtiene el título definido en la anotación @EnumWidget.
+   *
+   * @return el título si existe la anotación, o el nombre de la constante si no.
+   */
+  default String getTitle() {
+    if (this instanceof Enum) {
+      Enum<?> enumInstance = (Enum<?>) this;
+      try {
+        EnumWidget enumWidget = enumInstance.getClass().getField(enumInstance.name()).getAnnotation(EnumWidget.class);
+
+        if (enumWidget != null && enumWidget.title() != null && !enumWidget.title().isEmpty()) {
+          return enumWidget.title();
+        } else {
+          return enumInstance.name();
+        }
+
+      } catch (NoSuchFieldException | SecurityException e) {
+        return enumInstance.name();
+      }
+    }
+    return String.valueOf(getValue());
+  }
+
+  /**
+   * Obtiene la descripción definido en la anotación @EnumWidget.
+   *
+   * @return La descripción si existe la anotación, o el titulo si no existe o sino nombre de la constante si no.
+   */
+  default String getDescription() {
+    if (this instanceof Enum) {
+      Enum<?> enumInstance = (Enum<?>) this;
+      try {
+        EnumWidget enumWidget = enumInstance.getClass().getField(enumInstance.name()).getAnnotation(EnumWidget.class);
+
+        if (enumWidget != null && enumWidget.description() != null && !enumWidget.description().isEmpty()) {
+          return enumWidget.description();
+        } else {
+          return this.getTitle();
+        }
+
+      } catch (NoSuchFieldException | SecurityException e) {
+        return this.getTitle();
+      }
+    }
+    return String.valueOf(getValue());
+  }
+
 }
