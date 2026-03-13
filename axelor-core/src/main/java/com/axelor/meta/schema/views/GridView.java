@@ -45,6 +45,7 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
   @XmlAttribute private String action;
   @XmlAttribute private String actionSignal;
   @XmlAttribute private boolean canViewOnClick;
+  @XmlAttribute private boolean canEditOnClick;
 
   @XmlAttribute private String onDelete;
 
@@ -182,6 +183,9 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
   public boolean isCanViewOnClick() {
     return canViewOnClick;
   }
+  public boolean isCanEditOnClick() {
+    return canEditOnClick;
+  }
   public void setOnSave(String onSave) {
     this.onSave = onSave;
   }
@@ -194,7 +198,9 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
   public void setCanViewOnClick(boolean canViewOnClick) {
     this.canViewOnClick = canViewOnClick;
   }
-
+  public void setCanEditOnClick(boolean canEditOnClick) {
+    this.canEditOnClick = canEditOnClick;
+  }
   public String getOnDelete() {
     return onDelete;
   }

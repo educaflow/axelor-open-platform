@@ -429,6 +429,8 @@ export const Grid = forwardRef<
         onView?.(row.record);
       } else if (view.canViewOnClick) {
         onView?.(row.record);
+      } else if (view.canEditOnClick) {
+        onEdit?.(row.record);
       }
     },
     [isMobile, onNew, onEdit, onView, onDelete,actionExecutor,view],

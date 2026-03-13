@@ -1524,11 +1524,16 @@
         </xsd:attribute>
         <xsd:attribute name="canViewOnClick" type="xsd:boolean">
           <xsd:annotation>
-            <xsd:documentation>Si al hacer un click en el grid se muestra el detalle
+            <xsd:documentation>Si al hacer un click en el grid se muestra el detalle para "ver"
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-
+        <xsd:attribute name="canEditOnClick" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>Si al hacer un click en el grid se muestra el detalle para "editar"
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="onDelete" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>Comma-separated list of actions to execute on delete event.
