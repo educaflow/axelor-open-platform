@@ -42,6 +42,7 @@ import { useCardClassName } from "../cards/use-card-classname";
 import { KanbanBoard } from "./kanban-board";
 import { KanbanColumn, KanbanRecord } from "./types";
 import { createContextParams } from "../form/builder/utils";
+import { useCreateFormAtomByMeta } from "../form/builder/atoms";
 import {
   getColumnIndex,
   getColumnRecords,
@@ -118,7 +119,7 @@ export function Kanban(props: ViewProps<KanbanView>) {
           id: name!,
           title: title!,
           name: name!,
-          dataStore: new DataStore(dataStore.model, dataStore.options),
+          dataStore: dataStore.clone(),
         };
 
         if (view.onNew && ind === 0) {
@@ -258,7 +259,9 @@ export function Kanban(props: ViewProps<KanbanView>) {
     return onSearch({ offset: 0 });
   }, [onSearch]);
 
+  const formAtom = useCreateFormAtomByMeta(meta);
   const actionExecutor = useActionExecutor(view, {
+    formAtom,
     getContext: getActionContext,
     onRefresh,
   });
@@ -635,6 +638,7 @@ export function Kanban(props: ViewProps<KanbanView>) {
 
   const canNew = hasButton("new");
   const canEdit = hasButton("edit");
+  const canView = hasButton("view");
   const canDelete = hasButton("delete");
 
   useShortcuts({
@@ -650,6 +654,7 @@ export function Kanban(props: ViewProps<KanbanView>) {
       {showToolbar && (
         <ViewToolBar
           meta={meta}
+          formAtom={formAtom}
           actionExecutor={actionExecutor}
           actions={[
             {
@@ -699,13 +704,14 @@ export function Kanban(props: ViewProps<KanbanView>) {
           onCollapse={onCollapse}
           onLoadMore={onLoadMore}
           onCardMove={onMove}
-          onCardClick={onView}
           {...(canDelete && { onCardDelete: onDelete })}
           {...(canNew && { onCardAdd: onCreate })}
           {...(canEdit && {
             onCardEdit: hasEditPopup ? onEditInPopup : onEdit,
           })}
-          {...({} as any)}
+          {...(canView && {
+            onCardClick: onView,
+          })}
         />
       </Box>
     </Box>
@@ -727,23 +733,23 @@ function KanbanCard({
   onRefresh?: () => Promise<any>;
 }) {
   const { template: templateString } = view;
-  const divRef = useRef<any>(null);
+  const [containerElement, setContainerElement] = useState<HTMLDivElement | null>(null);
   const className = useCardClassName(view, record as DataRecord);
   const timer = useRef<NodeJS.Timeout>(null);
   const [popover, setPopover] = useState(false);
-  const [popoverData, setPopoverData] = useState<{ title: ""; body: "" }>({
+  const [popoverData, setPopoverData] = useState({
     title: "",
     body: "",
   });
 
   function showPopover() {
-    const div = divRef.current;
+    const div = containerElement;
     const summary =
       div &&
       (div.querySelector(".card-summary.popover") ||
         div.querySelector(
           `.${legacyClassNames("card-summary")}.${legacyClassNames("popover")}`,
-        ));
+        )) as HTMLElement;
     if (summary) {
       const text = (summary.textContent || "").trim();
       if (text) {
@@ -775,7 +781,7 @@ function KanbanCard({
   return (
     <>
       <Box
-        ref={divRef}
+        ref={setContainerElement}
         {...(hasPopover
           ? {
               onMouseEnter: showPopover,
@@ -803,8 +809,9 @@ function KanbanCard({
         bg={"white" as any}
         placement="end"
         open={popover}
-        target={divRef.current}
+        target={containerElement}
         offset={[0, 4]}
+        role={"tooltip"}
       >
         <Box
           style={{

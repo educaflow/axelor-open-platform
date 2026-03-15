@@ -24,8 +24,8 @@ dependencies {
   implementation libs.apache_shiro
   implementation libs.eclipselink_moxy
   implementation libs.buji_pac4j
-
   implementation 'jakarta.ws.rs:jakarta.ws.rs-api:3.1.0'
+  implementation libs.redisson
 }
 
 jar {

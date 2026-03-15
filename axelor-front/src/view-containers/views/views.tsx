@@ -123,6 +123,7 @@ function ViewContainer({
       <Fade in={true} timeout={400} mountOnEnter>
         <Box
           data-view-id={tab.id}
+          data-testid={`view:${view.type}`}
           d="flex"
           flex={1}
           style={{ minWidth: 0, minHeight: 0 }}
@@ -179,7 +180,7 @@ function ViewError({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <ErrorBox
       status={500}
-      error={session.data?.user?.technical ? error : undefined}
+      error={session.data?.user?.technical ? (error as Error) : undefined}
       onReset={handleReset}
     />
   );
@@ -252,6 +253,7 @@ const DataViews = memo(function DataViews({
       atom<AdvancedSearchState>({
         search: {},
         editor: { criteria: [] },
+        archiveType: "default",
       }),
     [],
   );
@@ -317,7 +319,10 @@ const DataViews = memo(function DataViews({
         ..._state,
         domains,
         items,
-        archived: showArchived,
+        archiveType:
+          (showArchived === true
+            ? "all"
+            : "default") as AdvancedSearchState["archiveType"],
         fields: {
           ..._state.fields,
           ...fields,

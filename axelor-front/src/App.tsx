@@ -5,6 +5,7 @@ import { ThemeProvider } from "@axelor/ui";
 import { useAppLang } from "./hooks/use-app-lang";
 import { useAppThemeOption } from "./hooks/use-app-theme";
 import { Routes } from "./routes";
+import { axelor } from "./utils/globals";
 
 import "./styles/global.scss";
 
@@ -25,9 +26,8 @@ function App() {
     insertFromHTML(document.head, `${import.meta.env.BASE_URL}includes/head.end.include.html`, "end");
     insertFromHTML(document.body, `${import.meta.env.BASE_URL}includes/body.start.include.html`, "start");
     insertFromHTML(document.body, `${import.meta.env.BASE_URL}includes/body.end.include.html`, "end");
-  }, []);
-
-  
+    axelor.notifyListeners();
+  }, [theme, options, dir, lang]);
   return (
     <ThemeProvider dir={dir} theme={theme} options={options}>
       <Routes />

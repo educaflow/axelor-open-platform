@@ -32,6 +32,7 @@ import {
 import { useActionExecutor, useAfterActions } from "../form/builder/scope";
 import { getSortBy, parseOrderBy } from "../grid/builder/utils";
 import { createContextParams } from "../form/builder/utils";
+import { useCreateFormAtomByMeta } from "../form/builder/atoms";
 import { ViewProps } from "../types";
 import { Card } from "./card";
 
@@ -120,7 +121,10 @@ export function Cards(props: ViewProps<CardsView>) {
 
   const onRefresh = useCallback(() => doSearch({}), [doSearch]);
 
+  const formAtom = useCreateFormAtomByMeta(meta);
+
   const actionExecutor = useActionExecutor(view, {
+    formAtom,
     getContext: getActionContext,
     onRefresh,
   });
@@ -293,6 +297,7 @@ export function Cards(props: ViewProps<CardsView>) {
       {showToolbar && (
         <ViewToolBar
           meta={meta}
+          formAtom={formAtom}
           dataStore={dataStore}
           getActionData={getActionData}
           actionExecutor={actionExecutor}

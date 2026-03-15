@@ -12,7 +12,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MaterialIcon } from "@axelor/ui/icons/material-icon";
 
 import { useAsyncEffect } from "@/hooks/use-async-effect";
-import { useEditor, useEditorInTab, useSelector } from "@/hooks/use-relation";
+import { useEditor, useEditorInTab, useSelector, isPopupMaximized } from "@/hooks/use-relation";
 import { usePermitted } from "@/hooks/use-permitted";
 import { DataStore } from "@/services/client/data-store";
 import { DataRecord } from "@/services/client/data.types";
@@ -349,6 +349,7 @@ function ReferenceEditor({ editor, fields, ...props }: FormEditorProps) {
           onSelect: (record) => set(valueAtom, record, true),
           record: $record,
           readonly: _readonly,
+          maximize: isPopupMaximized(schema, "editor"),
           viewName: formViewName,
         });
       },
@@ -356,6 +357,7 @@ function ReferenceEditor({ editor, fields, ...props }: FormEditorProps) {
         model,
         formViewName,
         isPermitted,
+        schema,
         showEditor,
         showEditorInTab,
         title,
@@ -371,6 +373,7 @@ function ReferenceEditor({ editor, fields, ...props }: FormEditorProps) {
           model,
           domain,
           orderBy,
+          maximize: isPopupMaximized(schema, "selector"),
           context: get(formAtom).record,
           limit: searchLimit,
           viewName: gridViewName,
@@ -389,6 +392,7 @@ function ReferenceEditor({ editor, fields, ...props }: FormEditorProps) {
         gridViewName,
         model,
         orderBy,
+        schema,
         searchLimit,
         canNew,
         showSelector,
@@ -419,22 +423,42 @@ function ReferenceEditor({ editor, fields, ...props }: FormEditorProps) {
   const titleActions = !readonly && (
     <div className={styles.actions}>
       {canEdit && canShowIcon("edit") && (
-        <Box d="flex" alignItems="center" title={i18n.get("Edit")}>
+        <Box
+          d="flex"
+          alignItems="center"
+          title={i18n.get("Edit")}
+          data-testid={"btn-edit"}
+        >
           <MaterialIcon icon="edit" onClick={() => handleEdit(false)} />
         </Box>
       )}
       {canView && !canEdit && canShowIcon("view") && (
-        <Box d="flex" alignItems="center" title={i18n.get("View")}>
+        <Box
+          d="flex"
+          alignItems="center"
+          title={i18n.get("View")}
+          data-testid={"btn-view"}
+        >
           <MaterialIcon icon="description" onClick={() => handleEdit(true)} />
         </Box>
       )}
       {canSelect && canShowIcon("select") && (
-        <Box d="flex" alignItems="center" title={i18n.get("Select")}>
+        <Box
+          d="flex"
+          alignItems="center"
+          title={i18n.get("Select")}
+          data-testid={"btn-select"}
+        >
           <MaterialIcon icon="search" onClick={handleSelect} />
         </Box>
       )}
       {canRemove && canShowIcon("clear") && (
-        <Box d="flex" alignItems="center" title={i18n.get("Clear")}>
+        <Box
+          d="flex"
+          alignItems="center"
+          title={i18n.get("Clear")}
+          data-testid={"btn-clear"}
+        >
           <MaterialIcon icon="cancel" onClick={handleDelete} />
         </Box>
       )}
@@ -715,10 +739,11 @@ function useItemsFamily({
   const items = useAtomValue(itemsAtom);
   const isCleanInitial = !!initialItem && isClean(initialItem);
 
+  const itemsLength = items?.length;
   const ensureValid = useAtomCallback(
     useCallback(
       (get) => {
-        if (initialItem || items?.length === 0) {
+        if (initialItem || itemsLength === 0) {
           return setInvalid(widgetAtom, false);
         }
         const currItems = get(itemsAtom);
@@ -732,7 +757,7 @@ function useItemsFamily({
         itemsAtom,
         setInvalid,
         widgetAtom,
-        items?.length,
+        itemsLength,
       ],
     ),
   );
@@ -978,6 +1003,7 @@ const RecordEditor = memo(function RecordEditor({
   const [loaded, setLoaded] = useState<DataRecord>({});
   const checkInvalidRef = useRef<() => void>(null);
 
+  /* eslint-disable react-hooks/refs */
   const editorAtom = useMemo(() => {
     const getRecord = (_value: DataRecord) => {
       const value = _value || EMPTY_RECORD;
@@ -1049,6 +1075,7 @@ const RecordEditor = memo(function RecordEditor({
       },
     );
   }, [editorFormAtom, loaded, parent, schema, valueAtom]);
+  /* eslint-enable react-hooks/refs */
 
   const { formAtom, actionHandler, actionExecutor, recordHandler } =
     useFormHandlers(meta, EMPTY_RECORD, {
@@ -1146,7 +1173,9 @@ const RecordEditor = memo(function RecordEditor({
     ),
   );
 
-  checkInvalidRef.current = checkInvalid;
+  useEffect(() => {
+    checkInvalidRef.current = checkInvalid;
+  }, [checkInvalid]);
 
   const idRef = useRef<number>(null);
   const id = useAtomValue(
@@ -1230,6 +1259,7 @@ function JsonEditor(props: FormEditorProps) {
   );
 
   const editorFieldsRef = useRef<Record<string, JsonField>>({});
+  /* eslint-disable react-hooks/refs */
   const editorFieldsAtom = useMemo(() => {
     return atom((get) => {
       if (
@@ -1270,6 +1300,7 @@ function JsonEditor(props: FormEditorProps) {
       return editorFieldsRef.current;
     });
   }, [formAtom, jsonFields, modelFields]);
+  /* eslint-enable react-hooks/refs */
 
   const editorFields = useAtomValue(editorFieldsAtom);
   const jsonEditor = useMemo(
@@ -1301,6 +1332,7 @@ function JsonEditorInner({
   const jsonNameField = Object.values(jsonFields).find((x) => x.nameColumn);
   const jsonValueRef = useRef<DataRecord>(null);
 
+  /* eslint-disable react-hooks/refs */
   const jsonAtom = useMemo(() => {
     return atom(
       (get) => {
@@ -1349,6 +1381,7 @@ function JsonEditorInner({
       },
     );
   }, [formAtom, jsonModel, jsonNameField, valueAtom]);
+  /* eslint-enable react-hooks/refs */
 
   const jsonLayout = schema.jsonModel ? FormViewLayout : undefined;
   const jsonEditor = useMemo(() => {

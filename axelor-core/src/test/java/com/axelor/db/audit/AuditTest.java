@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: Axelor <https://axelor.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
-package com.axelor.db;
+package com.axelor.db.audit;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,75 +10,27 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.axelor.JpaTest;
+import com.axelor.audit.db.AuditLog;
 import com.axelor.auth.AuthUtils;
 import com.axelor.auth.db.User;
 import com.axelor.concurrent.ContextAware;
-import com.axelor.mail.db.MailMessage;
-import com.axelor.meta.db.MetaSequence;
+import com.axelor.db.JPA;
+import com.axelor.db.JpaRepository;
+import com.axelor.db.Query;
 import com.axelor.test.db.AuditCheck;
-import com.google.inject.persist.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceException;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class AuditTest extends JpaTest {
-
-  @BeforeEach
-  public void beforeAll() {
-    if (Query.of(MetaSequence.class).count() == 0) {
-      fixture("sequence-data.yml");
-    }
-    if (Query.of(User.class).count() == 0) {
-      createUser();
-    }
-  }
-
-  @Transactional
-  void createUser() {
-    User user = new User();
-    user.setName("Administrator");
-    user.setCode("admin");
-    user.setPassword("password");
-    getEntityManager().persist(user);
-  }
-
-  @Transactional
-  void createEntity(String name) {
-    AuditCheck entity = new AuditCheck();
-    entity.setName(name);
-    getEntityManager().persist(entity);
-  }
-
-  @Transactional
-  void updateEntity(AuditCheck entity, String name) {
-    entity.setName(name);
-    getEntityManager().persist(entity);
-  }
-
-  @Transactional
-  void updateUser(User entity, String code) {
-    entity.setCode(code);
-    getEntityManager().persist(entity);
-  }
-
-  @Transactional
-  void deleteUser(User entity) {
-    getEntityManager().remove(entity);
-  }
+public class AuditTest extends BaseAuditTest {
 
   @Test
   @Order(1)
-  public void testInsert() {
-    final Runnable job = () -> createEntity("Some NAME");
+  public void shouldSetAuditableFieldsOnInsert() {
+    final Runnable job = () -> createEntity("Some NAME", "some.name@example.com");
     ContextAware.of().withTransaction(false).withUser(AuthUtils.getUser("admin")).build(job).run();
 
     AuditCheck entity = Query.of(AuditCheck.class).fetchOne();
@@ -97,12 +49,22 @@ public class AuditTest extends JpaTest {
 
     // check sequence field is set
     assertNotNull(entity.getEmpSeq());
+
+    // Should have AuditLog for the record
+    List<AuditLog> auditLogs =
+        Query.of(AuditLog.class)
+            .filter("self.relatedId = :relatedId AND self.relatedModel = :relatedModel")
+            .bind("relatedId", entity.getId())
+            .bind("relatedModel", entity.getClass().getName())
+            .fetch();
+    assertNotNull(auditLogs);
+    assertEquals(1, auditLogs.size());
   }
 
   @Test
   @Order(2)
-  public void testUpdate() {
-    final Runnable job = () -> createEntity("Another NAME");
+  public void shouldSetAuditableFieldsOnUpdate() {
+    final Runnable job = () -> createEntity("Another NAME", "another.name@example.com");
     ContextAware.of().withTransaction(false).withUser(AuthUtils.getUser("admin")).build(job).run();
 
     final AuditCheck entity =
@@ -126,34 +88,34 @@ public class AuditTest extends JpaTest {
     // updated(On|By) fields should are set
     assertNotNull(updatedEntity.getUpdatedOn());
     assertNotNull(updatedEntity.getUpdatedBy());
+
+    // Should have AuditLog for the record
+    List<AuditLog> auditLogs =
+        Query.of(AuditLog.class)
+            .filter("self.relatedId = :relatedId AND self.relatedModel = :relatedModel")
+            .bind("relatedId", entity.getId())
+            .bind("relatedModel", entity.getClass().getName())
+            .fetch();
+    assertNotNull(auditLogs);
+    assertEquals(2, auditLogs.size());
   }
 
   @Test
   @Order(3)
-  public void testUpdateUser() {
+  public void shouldNotChangeAdminUserCode() {
     User user = Query.of(User.class).filter("self.code = ?", "admin").fetchOne();
     assertThrows(PersistenceException.class, () -> updateUser(user, "administrator"));
   }
 
   @Test
   @Order(4)
-  public void testDeleteUser() {
+  public void shouldNotDeleteAdminUser() {
     User user = Query.of(User.class).filter("self.code = ?", "admin").fetchOne();
     assertThrows(PersistenceException.class, () -> deleteUser(user));
   }
 
   @Test
   @Order(5)
-  public void testTrack() {
-    List<MailMessage> messages = Query.of(MailMessage.class).fetch();
-    assertNotNull(messages);
-    assertNotEquals(0, messages.size());
-    assertTrue(
-        messages.stream().anyMatch(x -> AuditCheck.class.getName().equals(x.getRelatedModel())));
-  }
-
-  @Test
-  @Order(6)
   void testClear() {
     EntityManager em = getEntityManager();
     assertDoesNotThrow(

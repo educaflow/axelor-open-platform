@@ -11,8 +11,8 @@ apply plugin: 'base'
 apply plugin: 'com.github.node-gradle.node'
 
 node {
-    version = '22.17.1'
-    pnpmVersion = '10.18.3'
+    version = '24.13.1'
+    pnpmVersion = '10.29.3'
     download = true
 }
 

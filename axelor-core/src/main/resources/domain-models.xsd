@@ -5,7 +5,7 @@
 -->
 <xsd:schema targetNamespace="http://axelor.com/xml/ns/domain-models"
   xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:dm="http://axelor.com/xml/ns/domain-models"
-  elementFormDefault="qualified" attributeFormDefault="unqualified" version="8.0">
+  elementFormDefault="qualified" attributeFormDefault="unqualified" version="8.1">
 
   <xsd:annotation>
     <xsd:documentation>
@@ -448,7 +448,7 @@
         <xsd:attribute name="large" type="xsd:boolean">
           <xsd:annotation>
             <xsd:documentation>
-              Whether the text value is large (use default LOB length).
+              Whether the text value is large (use bytea database type).
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
@@ -551,6 +551,13 @@
           <xsd:annotation>
             <xsd:documentation>
             Specify whether the field is encrypted.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="large" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>
+              Whether the binary value is large (Reference to a Large Object stored in pg_largeobject system table).
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
@@ -1053,6 +1060,7 @@
         <xsd:documentation>
           Whether the records of this entity should be in
           unique sequence (else a global sequence will be used).
+          DEPRECATED: shouldn't be used, will use a sequence per entity
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
@@ -1156,6 +1164,13 @@
           </xsd:enumeration>
         </xsd:restriction>
       </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="allocationSize" type="xsd:integer">
+      <xsd:annotation>
+        <xsd:documentation>
+          The amount to increment by when allocating sequence numbers from the sequence.
+        </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
 

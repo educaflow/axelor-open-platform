@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <object-views xmlns="http://axelor.com/xml/ns/object-views"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.0.xsd">
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.1.xsd">
 
   <selection name="json.field.type">
     <option value="string">String</option>
@@ -196,8 +196,7 @@
     <field name="attrs" />
   </grid>
 
-  <form name="json-record-form" title="Form record" model="com.axelor.meta.db.MetaJsonRecord"
-    onNew="action-json-record-defaults">
+  <form name="json-record-form" title="Form record" model="com.axelor.meta.db.MetaJsonRecord">
     <panel title="Overview">
       <field name="attrs" colSpan="12" />
     </panel>
@@ -215,6 +214,7 @@
     <field name="modelField" expr="attrs" />
   </action-record>
 
+  <!-- TODO: kept in case old views use it, but needs to be removed eventually -->
   <action-record name="action-json-record-defaults" model="com.axelor.meta.db.MetaJsonRecord">
     <field name="jsonModel" expr="#{jsonModel}" />
   </action-record>

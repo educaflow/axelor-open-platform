@@ -17,13 +17,21 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useReducer,
   useRef,
   useState,
 } from "react";
 
-import { Box, Button, CommandBarProps, Panel, clsx } from "@axelor/ui";
+import {
+  Box,
+  Button,
+  CommandBarProps,
+  CommandItem,
+  Panel,
+  clsx,
+} from "@axelor/ui";
 import { GridColumnProps, GridRow, GridState } from "@axelor/ui/grid";
 import { MaterialIcon } from "@axelor/ui/icons/material-icon";
 
@@ -37,7 +45,9 @@ import {
   useEditor,
   useEditorInTab,
   useSelector,
+  isPopupMaximized,
 } from "@/hooks/use-relation";
+import { useSchemaTestId } from "@/hooks/use-testid";
 import { SearchOptions, SearchResult } from "@/services/client/data";
 import { DataStore } from "@/services/client/data-store";
 import { equals } from "@/services/client/data-utils";
@@ -97,8 +107,8 @@ import {
   nextId,
 } from "../../builder/utils";
 import { fetchRecord } from "../../form";
-import { DetailsForm } from "./one-to-many.details";
 import { usePanelClass } from "../panel";
+import { DetailsForm } from "./one-to-many.details";
 
 import styles from "./one-to-many.module.scss";
 
@@ -299,6 +309,8 @@ function OneToManyInner({
     height,
     perms,
   } = schema;
+
+  const testId = useSchemaTestId(schema, "field");
 
   const refs = useRef<{
     reorder: boolean;
@@ -610,6 +622,11 @@ function OneToManyInner({
   }, [fields, model, schema, viewData]);
 
   const getContext = usePrepareWidgetContext(schema, formAtom, widgetAtom);
+
+  const editorId = useId();
+  const selectorId = useId();
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
   const showEditor = useEditor();
   const showEditorInTab = useEditorInTab(schema);
@@ -1192,11 +1209,14 @@ function OneToManyInner({
       if (showEditorInTab && (id ?? 0) > 0) {
         return showEditorInTab(record!, options?.readonly ?? false);
       }
+      setIsEditorOpen(true);
       showEditor({
+        id: editorId,
         title: title ?? "",
         model,
         record: { id: null },
         readonly: false,
+        maximize: isPopupMaximized(schema, "editor"),
         viewName: formView,
         context: {
           _parent: getContext(),
@@ -1215,14 +1235,19 @@ function OneToManyInner({
                 }),
             }),
         ...options,
+        onClose: () => {
+          setIsEditorOpen(false);
+        },
       });
     },
     [
       showEditor,
       showEditorInTab,
+      editorId,
       title,
       model,
       formView,
+      schema,
       getContext,
       isManyToMany,
       isCollectionTree,
@@ -1350,9 +1375,12 @@ function OneToManyInner({
   const onSelect = useCallback(async () => {
     const _domain = await beforeSelect(domain, true);
     const _domainContext = _domain ? getContext() : {};
+    setIsSelectorOpen(true);
     showSelector({
+      id: selectorId,
       model,
       multiple: true,
+      maximize: isPopupMaximized(schema, "selector"),
       viewName: gridView,
       orderBy: orderBy,
       domain: _domain,
@@ -1362,15 +1390,20 @@ function OneToManyInner({
         onCreate: onAdd,
       }),
       onSelect: handleSelect,
+      onClose: () => {
+        setIsSelectorOpen(false);
+      },
     });
   }, [
     canNew,
     onAdd,
     showSelector,
+    selectorId,
     orderBy,
     model,
     gridView,
     domain,
+    schema,
     searchLimit,
     getContext,
     beforeSelect,
@@ -2012,6 +2045,13 @@ function OneToManyInner({
         },
         onClick: onSelect,
         hidden: !canSelect,
+        render: (commandProps) => (
+          <CommandItem
+            {...commandProps}
+            aria-haspopup="dialog"
+            aria-controls={isSelectorOpen ? selectorId : undefined}
+          />
+        ),
       },
       {
         key: "new",
@@ -2021,6 +2061,16 @@ function OneToManyInner({
         },
         onClick: editable ? onAddInGrid : onAdd,
         hidden: !canNew || Boolean(showSubTreeTitleIfEmpty),
+        render: (commandProps) => {
+          if (editable) return <CommandItem {...commandProps} />;
+          return (
+            <CommandItem
+              {...commandProps}
+              aria-haspopup="dialog"
+              aria-controls={isEditorOpen ? editorId : undefined}
+            />
+          );
+        },
       },
       {
         key: "edit",
@@ -2036,6 +2086,15 @@ function OneToManyInner({
           if (record) {
             onEdit(record);
           }
+        },
+        render: (commandProps) => {
+          return (
+            <CommandItem
+              {...commandProps}
+              aria-haspopup="dialog"
+              aria-controls={isEditorOpen ? editorId : undefined}
+            />
+          );
         },
       },
       {
@@ -2082,6 +2141,7 @@ function OneToManyInner({
       )}
       <Panel
         ref={panelRef}
+        data-testid={testId}
         className={clsx(styles.container, panelClass, {
           [styles.tree]: isTreeGrid,
           [styles.subTree]: isSubTreeGrid,
@@ -2098,6 +2158,7 @@ function OneToManyInner({
           <ScopeProvider scope={MetaScope} value={viewMeta}>
             <GridComponent
               style={gridStyle}
+              data-testid="grid"
               className={clsx(styles["grid"], {
                 [styles["basic"]]: !hasMasterDetails,
                 [styles["no-rows"]]: !hasRows,

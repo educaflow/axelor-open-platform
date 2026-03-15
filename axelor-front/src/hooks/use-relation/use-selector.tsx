@@ -12,17 +12,19 @@ import { showPopup } from "@/view-containers/view-popup";
 import { usePopupHandlerAtom } from "@/view-containers/view-popup/handler";
 
 import { i18n } from "@/services/client/i18n";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtomValue } from "jotai";
 import { useDataStore } from "../use-data-store";
 import { initTab } from "../use-tabs";
-import { SearchOptions, SearchPage } from "@/services/client/data";
+import { SearchOptions } from "@/services/client/data";
 import { ActionView, GridView } from "@/services/client/meta.types";
 import { useSingleClickHandler } from "../use-button";
 
 export type SelectorOptions = {
+  id?: string;
   model: string;
   title?: string;
   multiple?: boolean;
+  maximize?: boolean;
   view?: GridView;
   viewName?: string;
   viewParams?: ActionView["params"];
@@ -38,6 +40,7 @@ export type SelectorOptions = {
 export function useSelector() {
   return useCallback(async function showSelector(options: SelectorOptions) {
     const {
+      id,
       title,
       model,
       view: gridView,
@@ -45,6 +48,7 @@ export function useSelector() {
       viewParams,
       orderBy,
       multiple,
+      maximize,
       domain,
       context,
       limit,
@@ -87,8 +91,10 @@ export function useSelector() {
     if (!tab) return;
 
     await showPopup({
+      id,
       tab,
       open: true,
+      maximize,
       onClose: () => {
         onClose?.();
       },
@@ -97,7 +103,6 @@ export function useSelector() {
         <Footer
           multiple={multiple}
           close={close}
-          onClose={onClose}
           onCreate={onCreate}
           onSelect={onSelect}
         />
@@ -211,66 +216,60 @@ function SelectorHeader({
 function Footer({
   multiple = false,
   close,
-  onClose: _onClose,
   onCreate,
   onSelect,
 }: {
   multiple?: boolean;
   close: (result: boolean) => void;
-  onClose?: () => void;
   onCreate?: () => void;
   onSelect?: (records: DataRecord[]) => void;
 }) {
   const handlerAtom = usePopupHandlerAtom();
-  const [handler, setHandler] = useAtom(handlerAtom);
+  const handler = useAtomValue(handlerAtom);
 
-  const onClose = useCallback(
-    (result: boolean) => {
+  const handleClose = useCallback(
+    (result = false) => {
       close(result);
-      _onClose?.();
     },
-    [close, _onClose],
+    [close],
   );
-
-  const handleCancel = useCallback(() => {
-    onClose(false);
-  }, [onClose]);
 
   const handleConfirm = useCallback(async () => {
     const state = handler.data as GridState;
     const records =
       state?.selectedRows?.map((index) => state.rows[index].record) ?? [];
     onSelect?.(records);
-    onClose(true);
-  }, [handler.data, onSelect, onClose]);
+    close(true);
+  }, [handler.data, onSelect, close]);
 
   const handleOk = useSingleClickHandler(handleConfirm);
 
-  useEffect(() => {
-    setHandler((popup) => ({ ...popup, close: handleCancel }));
-  }, [setHandler, handleCancel]);
-
   return (
     <Box d="flex" g={2} flex={1}>
-      <Handler multiple={multiple} onClose={onClose} onSelect={onSelect} />
+      <Handler multiple={multiple} onClose={handleClose} onSelect={onSelect} />
       {onCreate && (
         <Box d="flex" flex={1}>
           <Button
             variant="light"
             onClick={() => {
-              onClose(false);
+              handleClose();
               onCreate();
             }}
+            data-testid="btn-create"
           >
             {i18n.get("Create")}
           </Button>
         </Box>
       )}
       <Box d="flex" g={2} ms={"auto"}>
-        <Button variant="secondary" onClick={handleCancel}>
+        <Button
+          variant="secondary"
+          onClick={() => handleClose()}
+          data-testid="btn-cancel"
+        >
           {i18n.get("Close")}
         </Button>
-        <Button variant="primary" onClick={handleOk}>
+        <Button variant="primary" onClick={handleOk} data-testid="btn-confirm">
           {i18n.get("OK")}
         </Button>
       </Box>

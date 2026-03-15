@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Layout, Layouts, Responsive, WidthProvider } from "react-grid-layout";
+import {
+  Layout,
+  LayoutItem,
+  ResizeHandleAxis,
+  Responsive,
+  ResponsiveLayouts,
+} from "react-grid-layout";
 
 import { Box, clsx, useTheme } from "@axelor/ui";
 
@@ -28,8 +34,6 @@ import { prepareSearchFormMeta } from "../search/utils";
 import { DashboardSearch } from "./dashboard-search";
 import dashletStyles from "../form/widgets/dashlet/dashlet.module.scss";
 import styles from "./dashboard.module.scss";
-
-const GridLayout = WidthProvider(Responsive);
 
 type MEDIA_TYPE = "xxs" | "xs" | "sm" | "md" | "lg";
 
@@ -88,7 +92,7 @@ const getAttrs = (item: PanelDashlet, type: MEDIA_TYPE) => {
 export function Dashboard({ meta }: ViewProps<DashboardView>) {
   const { view } = meta;
   const { items = [] } = view;
-  const [layouts, setLayouts] = useState<Layouts | null>(null);
+  const [layouts, setLayouts] = useState<ResponsiveLayouts | null>(null);
   const { ref, width } = useResizeDetector();
   const { isMobile } = useDevice();
   const saved = useRef(false);
@@ -120,7 +124,7 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
   );
 
   const updateLayout = useCallback(
-    (updater: (key: MEDIA_TYPE, layouts?: Layout[]) => Layout[]) => {
+    (updater: (key: MEDIA_TYPE, layouts?: Layout) => LayoutItem[]) => {
       setLayouts((layouts) => {
         return Object.keys(COLS).reduce(
           (obj, k) => ({
@@ -128,7 +132,7 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
             [k]: updater(k as MEDIA_TYPE, layouts?.[k]),
           }),
           [],
-        ) as unknown as Layouts;
+        ) as unknown as ResponsiveLayouts;
       });
     },
     [],
@@ -146,16 +150,17 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
     saved.current = true;
   }, []);
 
-  const handleLayoutChange = useCallback(
-    async (layout: Layout[], allLayout: Layouts) => {
-      setLayouts(allLayout);
-    },
-    [],
-  );
+  const handleLayoutChange = useCallback((layout: Layout, allLayouts: ResponsiveLayouts) => {
+    setLayouts(allLayouts);
+  }, []);
 
   const handleResize = useCallback(
-    (layout: Layout[], oldItem: Layout, newItem: Layout) => {
-      if (oldItem.w !== newItem.w || oldItem.h !== newItem.h) {
+    (
+      layout: Layout,
+      oldItem: LayoutItem | null,
+      newItem: LayoutItem | null,
+    ) => {
+      if (oldItem?.w !== newItem?.w || oldItem?.h !== newItem?.h) {
         saved.current = true;
       }
     },
@@ -165,7 +170,7 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
   const handleItemViewLoad = useCallback(
     (schema: Schema, viewId?: number, viewType?: string) => {
       const viewItems = items;
-      updateLayout((type: MEDIA_TYPE, items?: Layout[]) => {
+      updateLayout((type: MEDIA_TYPE, items?: Layout) => {
         return (items || []).map((item) =>
           String(item.i) === String(viewId)
             ? (() => {
@@ -257,20 +262,21 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
           };
         }
 
-        items &&
-          (await saveView({
+        if (items) {
+          await saveView({
             ...view,
             items: items.map((item, index) => getItem(item, index)),
-          }));
+          });
+        }
       })();
     }
   }, [hasViewCustomize, items, view, layouts]);
 
   useEffect(() => {
-    if (ref.current && width) {
+    if (width) {
       window.dispatchEvent(new Event("resize"));
     }
-  }, [ref, width]);
+  }, [width]);
 
   const onSearchValueChanged = useCallback((values: DataRecord) => {
     setContext((vals) => ({ ...vals, ...values }));
@@ -308,17 +314,41 @@ export function Dashboard({ meta }: ViewProps<DashboardView>) {
             schema={item}
             viewId={index}
             canEdit={getExpressionValue(item.canEdit)}
-            canDelete={item.canDelete !== undefined && getExpressionValue(item.canDelete)}
-            canNew={item.canNew !== undefined && getExpressionValue(item.canNew)}
+            canDelete={
+              item.canDelete !== undefined && getExpressionValue(item.canDelete)
+            }
+            canNew={
+              item.canNew !== undefined && getExpressionValue(item.canNew)
+            }
             onViewLoad={handleItemViewLoad}
             getContext={getContext}
           />
         </Box>
       )),
-    [items, hasViewCustomize, handleItemViewLoad, getContext],
+    [
+      items,
+      hasViewCustomize,
+      getExpressionValue,
+      handleItemViewLoad,
+      getContext,
+    ],
   );
 
   const isReady = searchFormMeta ? isFormInit : true;
+
+  const configProps = useMemo(
+    () => ({
+      dragConfig: {
+        enabled: hasViewCustomize,
+        bounded: true,
+        handle: `.${dashletStyles.header}`,
+      },
+      resizeConfig: {
+        handles: ["se" as ResizeHandleAxis],
+      },
+    }),
+    [hasViewCustomize],
+  );
 
   return (
     <Box

@@ -39,6 +39,16 @@ public interface AvailableAppSettings {
   String APPLICATION_SCRIPT_CACHE_EXPIRE_TIME = "application.script.cache.expire-time";
   String APPLICATION_SCRIPT_TIMEOUT = "application.script.timeout";
 
+  String AUDIT_LOGS_FLUSH_THRESHOLD = "application.audit.logs.flush-threshold";
+  String AUDIT_LOGS_MAX_RETRY = "application.audit.logs.max-retry";
+  String AUDIT_PROCESSOR_BATCH_DELAY = "application.audit.processor.batch-delay";
+  String AUDIT_PROCESSOR_ACTIVITY_WINDOW = "application.audit.processor.activity-window";
+  String AUDIT_PROCESSOR_BUSY_BACKOFF_INTERVAL =
+      "application.audit.processor.busy-backoff-interval";
+  String AUDIT_PROCESSOR_BUSY_BACKOFF_MAX_RETRIES =
+      "application.audit.processor.busy-backoff-max-retries";
+  String AUDIT_PROCESSOR_BATCH_SIZE = "application.audit.processor.batch-size";
+
   String APPLICATION_DOMAIN_BLOCKLIST_PATTERN = "application.domain-blocklist-pattern";
 
   String APPLICATION_OPENAPI_ENABLED = "application.openapi.enabled";
@@ -66,6 +76,10 @@ public interface AvailableAppSettings {
   String APPLICATION_CACHE_SHIRO_PROVIDER = "application.cache.shiro.provider";
   String APPLICATION_CACHE_SHIRO_CONFIG_PREFIX = "application.cache.shiro.config.";
   String APPLICATION_CACHE_SHIRO_CONFIG_PATH = APPLICATION_CACHE_SHIRO_CONFIG_PREFIX + "path";
+
+  String APPLICATION_ENTITY_SEQUENCE_PATH = "application.entity.sequence.";
+  String APPLICATION_ENTITY_SEQUENCE_GLOBAL_DEFAULT_ALLOCATION_SIZE =
+      APPLICATION_ENTITY_SEQUENCE_PATH + "default_allocation_size";
 
   String VIEW_SINGLE_TAB = "view.single-tab";
   String VIEW_TABS_MAX = "view.max-tabs";

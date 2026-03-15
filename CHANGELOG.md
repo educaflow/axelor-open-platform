@@ -1,3 +1,487 @@
+## 8.1.1 (2026-03-09)
+
+#### Change
+
+* Replace react-text-mask with internal <MaskedInput> component
+
+  <details>
+  
+  Replace the unmaintained react-text-mask dependency with a fully
+  internal <MaskedInput> implementation covering the same feature set.
+  
+  </details>
+
+#### Fix
+
+* Fix required validation in duration widget
+* Fix false `React.createFactory` error on undefined property access
+
+  <details>
+  
+  The expression parser sandbox checked property access values against
+  `React.createFactory`, which was removed in React 19 and is `undefined`.
+  This caused any computed property lookup returning `undefined` (e.g. an
+  object key miss with nullish coalescing) to falsely throw an error.
+  
+  </details>
+
+* Fix SingleSelect dropdown not closing on Tab key
+* Fix EML file upload failures
+* Fix multi-tenancy AxelorCache.asMap() usage
+
+  <details>
+  
+  With multi-tenancy, AxelorCache.asMap() returns a map view for current tenant.
+  Using it on static field either cause null tenant if called before multi-tenancy module,
+  or resolution to tenant of first usage. AxelorCache.asMap() should be called on demand only.
+  
+  Moreover, on app shutdown, we need to iterate over the cache for each tenant.
+  
+  Affected usage:
+    - Pending exports
+    - Mail channel
+  
+  </details>
+
+* Fix lost action-view context in calendar views
+
+  <details>
+  
+  Calendar views with context-based domains (e.g. `self.user.id = :_userId`) displayed
+  no events because the calendar widget's `_domainContext` overwrote the action-view's
+  context variables during filter merge. The DataStore's original context is now preserved
+  by spreading it first when building the calendar's domain context.
+  
+  </details>
+
+* Fix `x-popup-maximized` attribute on relational fields
+
+  <details>
+  
+  This fixes `x-popup-maximized` attribute to control the maximized 
+  (i.e., fullscreen) state of popup windows for relational fields.
+  
+  </details>
+
+#### Security
+
+* Fix sandbox bypass via async/generator function constructors
+
+  <details>
+  
+  The expression parser sandbox only blocked the regular `Function` constructor,
+  allowing code execution through `AsyncFunction`, `GeneratorFunction`, and
+  `AsyncGeneratorFunction` constructors obtained via `.constructor` on async,
+  generator, and async generator function instances.
+  
+  </details>
+
+* Block expression sandbox escapes via this and prototype access
+
+  <details>
+  
+  The expression parser now blocks `this` and dangerous properties such as
+  `__proto__`, `prototype`, and `constructor`, including computed access, to
+  prevent sandbox escapes and prototype pollution vectors.
+  
+  </details>
+
+
+## 8.1.0 (2026-02-20)
+
+#### Feature
+
+* Add support to custom entity sequence allocation size
+
+  <details>
+  
+  Allows specifying custom allocation size for sequences used by entities. This can be useful for optimizing 
+  performance.
+  
+  This allows to provide custom entity sequence allocation size in multiple ways:
+  - From xml entity definition itself, using `allocationSize` attribute
+  - Sequence specific configuration defined in application settings,
+  `application.entity.sequence.%MY_SEQ%.allocation_size`
+  - Global default allocation size : `application.entity.sequence.default_allocation_size`
+  
+  When `allocationSize` is 1, it forces Hibernate to execute a `SELECT nextval('seq')` query for every single entity 
+  saved. Having an `allocationSize` greater than 1 is the performance tuner for database inserts. It controls how
+  many IDs Hibernate fetches from the database in a single network call.
+  
+  </details>
+
+* Add drag-and-drop support into the widget area
+
+  <details>
+  
+  Add support to simply drag and drop files directly into binary/binary-link/image widgets. Users can now drag files 
+  from their desktop or file explorer directly into the widget area, bypassing the traditional system file picker dialog
+  
+  </details>
+
+* Add summary bar feature in grid view
+
+  <details>
+  
+  The summary bar can be used to show summary by the selected rows, page and action in a grid view.
+  
+  </details>
+
+* Include date range and view mode in calendar context
+
+  <details>
+  
+  In calendar views, the context now includes the following information:
+  - `_calendarViewMode`: current view type (day, week, or month)
+  - `_calendarStartDate`: first visible date of the viewport (inclusive)
+  - `_calendarEndDate`: last visible date of the viewport (exclusive)
+  
+  </details>
+
+* Improve React-based HTML applications embedded
+
+  <details>
+  
+  React-based HTML applications embedded can now retrieve some information (theme/language/...) and subscribe to 
+  changes via a listener pattern.
+  
+  </details>
+
+* Allow displaying archived records only from advance search
+
+  <details>
+  
+  Show archived boolean is replaced by selection as follow
+  - Include archived : include the archived records
+  - Only archived    : only display the archived records.
+  
+  </details>
+
+* Asynchronous Queue-Based Audit Tracking
+
+  <details>
+  
+  Improved audit tracking with asynchronous queue-based processing to improve the performance.
+  Now the listener performs a lightweight capture of raw data and inserts simple `AuditLog` rows into the database. The 
+  main operation has no more complex logic executed, reducing the execution time. After the transaction commits, a 
+  background thread picks up the AuditLog entries and handle the tracking process : generate the associated mail message 
+  and emails sending.
+  
+  - Introduce `AuditLog` entity for persistent audit event storage with full state capture. It support retry logic 
+  with max retries and error tracking.
+  - For security and performance reasons, certain field types are automatically excluded from audit tracking : 
+  passwords/encrypted/binary/collection and transient fields.
+  - Tracking messages are not created immediately when a record is created/updated. Instead, they appear in the stream 
+  after a brief delay.
+  - Adaptive back-pressure mechanism controlled with following properties : 
+  `application.audit.logs.flush-threshold`, `application.audit.processor.batch-delay`, 
+  `application.audit.processor.activity-window`, `application.audit.processor.busy-backoff-interval`, 
+  `application.audit.processor.busy-backoff-max-retries` and `application.audit.processor.batch-size`.
+  
+  </details>
+
+* Add `oid` database type for binary fields
+
+  <details>
+  
+  Since 8.0, `binary` fields declared in domains now map to `bytea` instead of `oid`. `bytea` is the modern standard for
+  binary data up to a few hundred megabytes. `oid` is a legacy mechanism that introduces significant maintenance
+  headaches and should only be used for specific "streaming" use cases. For compatibility reasons, this adds support to 
+  use `oid` database type for `binary` fields. This can be enabled by adding `large="true"` attribute on field definition.
+  
+  </details>
+
+* Implement findById and getReferenceById in entity repositories
+
+  <details>
+  
+  Implement two new methods in entity repositories : 
+  
+  - `findById(Long id)` : same as `find(Long id)` but return an Optional
+  - `getReferenceById(Long id)` : retrieves a reference (proxy) to an entity without immediately loading its state
+  
+  </details>
+
+* Add real-time mail message updates
+
+  <details>
+  
+  The mail messages widget now supports real-time updates via WebSocket.
+  This is necessary since the introduction of asynchronous audit tracking.
+  The implementation also supports distributed environments using Redis/Valkey for message broadcasting.
+  
+  </details>
+
+#### Change
+
+* Update sorting behavior in grouped grids
+
+  <details>
+  
+  On grouped grids, the grouped results can become inconsistent due to sorted fields. This automatically prioritizes 
+  grouping fields in the sort order to ensure consistent grouping records through pagination.
+  
+  </details>
+
+* Upgrade backend dependencies
+
+  <details>
+  
+  Here is the list of backend dependencies upgraded :
+  
+  - Upgrade Byte Buddy from 1.17.8 to 1.18.5
+  - Upgrade ASM from 9.8 to 9.9.1
+  - Upgrade Snakeyaml from 2.4 to 2.5
+  - Upgrade Jsoup from 1.21.2 to 1.22.1
+  - Upgrade Flyway from 11.11.2 to 11.20.3
+  - Upgrade Junit from 5.13.4 to 5.14.3
+  - Upgrade Apache Commons IO from 2.20.0 to 2.21.0
+  - Upgrade Guava from 33.4.8 to 33.5.0
+  - Upgrade Minio from 8.5.17 to 8.6.0
+  - Upgrade Jackson from 2.19.4 to 2.21.0
+  - Upgrade PostgreSQL JDBC from 42.7.9 to 42.7.10
+  - Upgrade Tomcat from 10.1.50 to 10.1.52
+  - Upgrade Groovy from 4.0.29 to 4.0.30
+  - Upgrade Logback from 1.5.25 to 1.5.32
+  - Upgrade Swagger from 2.2.41 to 2.2.43
+  - Upgrade Undertow from 2.3.21.Final to 2.3.23.Final
+  - Upgrade Hibernate ORM from 6.6.40.Final to 6.6.42.Final
+  - Upgrade Jakarta JAXB API from 4.0.4 to 4.0.5
+  
+  </details>
+
+#### Deprecate
+
+* The `sequential` attribute on `entity` definition is now deprecated
+
+  <details>
+  
+  Since Hibernate 6.x, it creates a sequence per entity hierarchy instead of a single sequence `hibernate_sequence`.
+  So the `sequential` attribute is no longer needed and should be removed from entity definitions. It is marked as 
+  deprecated and will be removed in further version. All entities will now use their own sequence.
+  
+  </details>
+
+#### Fix
+
+* Automatically initialize jsonModel field for custom model forms
+
+  <details>
+  
+  When creating a new record in a custom model form view, the jsonModel field
+  is now automatically set to match the view's jsonModel value.
+  
+  This ensures custom model records are properly initialized with the correct
+  jsonModel identifier without requiring additional backend actions or manual
+  intervention.
+  
+  </details>
+
+* Fix search on grid multi-select widget field
+* Fix observer lookup for plain class event hierarchies
+
+  <details>
+  
+  Observers whose event parameter is a supertype are now correctly invoked when a subtype event
+  is fired. For example, an observer declared as `onModel(@Observes ModelEvent e)` is now
+  triggered when a `ContactEvent extends ModelEvent` is fired, as required by the CDI
+  specification.
+  
+  Previously, observer lookup used an exact class match, so supertype observers were never
+  notified for subtype events.
+  
+  </details>
+
+* Support observer method inheritance in EventBus
+
+  <details>
+  
+  Observer methods are now inherited by subclasses, as required by the CDI specification.
+  Previously, only methods declared directly on the bound class were discovered; inherited
+  observer methods were silently ignored.
+  
+  Overriding rules are also respected: if a subclass overrides an observer method, only the
+  overriding version is invoked (the parent version is suppressed), matching standard Java
+  method override semantics.
+  
+  </details>
+
+* Fix theme builder typography properties path
+* Resolve generic type variables in inherited observer methods
+
+  <details>
+  
+  When an observer method is declared in a generic base class (e.g. `onSave(@Observes SaveEvent<T>
+  event)`), the event parameter type is now correctly resolved to the concrete type argument
+  supplied by the subclass (e.g. `SaveEvent<Contact>` for `class ContactHandler extends
+  GenericHandler<Contact>`).
+  
+  Previously, the unresolved type variable `T` was used for matching, causing generic observer
+  methods to either never match or match too broadly.
+  
+  </details>
+
+
+## 8.0.5 (2026-01-23)
+
+#### Change
+
+* Upgrade backend dependencies
+
+  <details>
+  
+  Here is the list of backend dependencies upgraded :
+  
+  - Upgrade Quartz from 2.5.1 to 2.5.2
+  - Upgrade Logback from 1.5.21 to 1.5.25
+  - Upgrade Undertow from 2.3.20.Final to 2.3.21.Final
+  - Upgrade Hibernate from 6.6.36.Final to 6.6.40.Final
+  - Upgrade Resteasy from 6.2.14.Final to 6.2.15.Final
+  - Upgrade Tomcat from 10.1.49 to 10.1.50
+  - Upgrade Swagger from 2.2.40 to 2.2.41
+  - Upgrade Greenmail from 2.1.7 to 2.1.8
+  - Upgrade Moxy from 4.0.8 to 4.0.9
+  - Upgrade pac4j from 6.2.2 to 6.3.1
+  - Upgrade Redisson from 3.51.0 to 3.52.0
+  - Upgrade PostgreSQL JDBC driver from 42.7.8 to 42.7.9
+  - Upgrade BIRT from 4.21.0 to 4.22.0
+  
+  Due to OpenPDF library upgrade, import statements using `com.lowagie` package should be migrated to `org.openpdf`.
+  
+  </details>
+
+#### Fix
+
+* Fix step validation in decimal input widget
+* Fix alpha transparency usage in theme editor
+* Fix check draggable attribute in tree view node
+* Fix dms grid auto scroll issue on cell selection
+* Fix generating extended entities not included in project
+
+  <details>
+  
+  Extended entities having a super class were wrongly generated in project : Entities in a 'SINGLE_TABLE' hierarchy 
+  shouldn't be annotated with `@Table` (the root class declares the table mapping for the hierarchy). Issue only 
+  happens with entities declared in module dependencies (project dependencies not concerned).
+  
+  </details>
+
+* Disallow `form` tag in DOMPurify sanitization
+* Normalize empty HTML content in HTML widget
+
+  <details>
+  
+  Treat HTML editor output that contains only whitespace or <br> tags as empty.
+  This prevents leftover <br> content when clearing the field and allows required
+  validation to work as expected.
+  
+  </details>
+
+* Fix perform advanced search on entire dms tree
+
+## 8.0.4 (2026-01-05)
+
+#### Feature
+
+* Implement tenant-aware AxelorCache
+
+  <details>
+  
+  By default, when multi-tenancy is active, the cache automatically segregates entries based
+  on the current tenant context.
+  Use `CacheBuilder#nonTenantAware()` to disable this behavior and allow the cache
+  to be shared globally across all tenants.
+  
+  </details>
+
+#### Fix
+
+* Fix connect/disconnect lines in gantt view
+* Fix bind close action in popup view
+
+  <details>
+  
+  When header/footer is hidden then it should still bind close handler properly
+  so that action handler can close the view.
+  
+  </details>
+
+* Fix kanban record opening permission check (canView/read)
+
+  <details>
+  
+  Allow opening a record in form view from the kanban view
+  when either read or canView permission is granted.
+  
+  </details>
+
+* Fix MFA form email resend timer
+
+  <details>
+  
+  Fix initial email resend timer when email method is default.
+  Fix email resend timer on browser refresh.
+  
+  </details>
+
+* Fix adding custom button in grid view customization
+* Fix auto-selection of created record in M2O widget
+
+  <details>
+  
+  When a record is created through the many-to-one widget using the popup form,
+  the record is persisted via an action. After clicking **OK**, the newly created
+  record should be automatically selected in the M2O widget.
+  
+  </details>
+
+* Fix findFields to consider jsonModel for custom models
+
+  <details>
+  
+  Fix findFields returning wrong field metadata when different JSON models
+  have fields with the same name. The method now correctly filters fields
+  by jsonModel to avoid returning data from unrelated custom models.
+  
+  </details>
+
+* Fix action-attrs support on tooolbar/menubar
+
+  <details>
+  
+  Fix changing title of toolbar buttons and menubar items in form view.
+  Also add support for title/hidden/readonly attributes for cards/kanban/dms/grid views.
+  
+  </details>
+
+* Improve DMS upload notification visibility and statuses
+
+  <details>
+  
+  Keep the DMS upload panel visible briefly after uploads complete, show accurate titles for running/failed/complete states, and add missing translations.
+  
+  </details>
+
+* Don't show automatic attrs on form view when there is at least one manual custom field
+
+  <details>
+  
+  Don't show automatic attrs on form view when there is at least one manual custom field,
+  e.g. `<field name="attrs.customField" />`
+  Static widgets on grid view (like `button`) do not prevent automatic attrs.
+  
+  </details>
+
+* Apply tenant-aware for database-dependent caches
+
+  <details>
+  
+  Use tenant-aware caches for MFAService, I18nBundle, and MetaStore.
+  Any cache that contains database-dependent data should be tenant-aware.
+  
+  </details>
+
+
 ## 8.0.3 (2025-12-04)
 
 #### Fix

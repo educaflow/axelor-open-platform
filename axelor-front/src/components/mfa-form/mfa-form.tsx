@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -10,24 +9,26 @@ import {
   type TForeground,
 } from "@axelor/ui";
 import { MaterialIcon } from "@axelor/ui/icons/material-icon";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
-import { LoadingButton } from "@/components/loading-button";
 import { AppSignInLogo } from "@/components/app-logo";
+import { LoadingButton } from "@/components/loading-button";
 import { useAppSettings } from "@/hooks/use-app-settings";
-import { i18n } from "@/services/client/i18n";
 import { useSession } from "@/hooks/use-session";
+import { CLIENT_NAME_PARAM } from "@/routes/login";
+import { i18n } from "@/services/client/i18n";
 import { moment } from "@/services/client/l10n";
-import { SessionInfo } from "@/services/client/session";
 import {
   MFAMethod,
   mfaSession,
   sendEmailVerificationCode,
 } from "@/services/client/mfa";
-import { CLIENT_NAME_PARAM } from "@/routes/login";
+import { SessionInfo } from "@/services/client/session";
+
 import styles from "./mfa-form.module.scss";
 
-function getTimeoutOfEmailRetryByUser(username: string) {
-  const retryAfter = mfaSession.EmailRetryAfter.get(username);
+function getTimeoutOfEmailRetryByUser(usernameKey: string) {
+  const retryAfter = mfaSession.EmailRetryAfter.get(usernameKey);
   if (retryAfter) {
     return Math.max(0, moment(retryAfter).diff(moment(), "second"));
   }
@@ -53,12 +54,13 @@ export function MFAForm({
   const session = useSession();
   const { copyright } = useAppSettings();
   const { methods = [], username = "", emailRetryAfter, tenant } = state ?? {};
+  const usernameKey = tenant ? `${tenant}:${username}` : username;
 
   const availableMethods: MFAMethod[] = [...methods, "RECOVERY"];
 
   const [mfaCode, setMFACode] = useState("");
   const [mfaMethod, setMFAMethod] = useState<MFAMethod>(
-    mfaSession.MFAMethod.get(username) ?? availableMethods?.[0],
+    mfaSession.MFAMethod.get(usernameKey) ?? availableMethods?.[0],
   );
   const [showOptions, setShowOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,14 +70,17 @@ export function MFAForm({
     variant: TVariant;
     message: string;
   } | null>(null);
+
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const alertId = useId();
+  const codeId = useId();
 
   const showAlert = useCallback((variant: TVariant, message: string) => {
     setAlert({ variant, message });
   }, []);
 
   const handleSendEmail = useCallback(async () => {
-    if (getTimeoutOfEmailRetryByUser(username) > 0) {
+    if (getTimeoutOfEmailRetryByUser(usernameKey) > 0) {
       return;
     }
 
@@ -83,9 +88,9 @@ export function MFAForm({
       const { message, emailRetryAfter } =
         await sendEmailVerificationCode(username);
 
-      mfaSession.EmailRetryAfter.set(username, emailRetryAfter);
+      mfaSession.EmailRetryAfter.set(usernameKey, emailRetryAfter);
 
-      const diff = getTimeoutOfEmailRetryByUser(username);
+      const diff = getTimeoutOfEmailRetryByUser(usernameKey);
       setRetryCount(diff);
 
       showAlert("success", message);
@@ -97,15 +102,21 @@ export function MFAForm({
       }
       if (typeof err?.message === "string") {
         showAlert("danger", err.message);
-        setRetryCount(0);
+        if (err?.emailRetryAfter) {
+          mfaSession.EmailRetryAfter.set(usernameKey, err?.emailRetryAfter);
+          const diff = getTimeoutOfEmailRetryByUser(usernameKey);
+          setRetryCount(diff);
+        } else {
+          setRetryCount(0);
+        }
       }
     }
-  }, [username, onBackToLogin, showAlert]);
+  }, [username, usernameKey, onBackToLogin, showAlert]);
 
   const handleMFAMethodChange = useCallback(
     (method: MFAMethod) => {
       setMFAMethod(method);
-      mfaSession.MFAMethod.set(username, method);
+      mfaSession.MFAMethod.set(usernameKey, method);
 
       // reset states
       setShowOptions(false);
@@ -114,11 +125,11 @@ export function MFAForm({
 
       // auto send email for first time only
       // skip for subsequent attempts
-      if (method === "EMAIL" && !mfaSession.EmailRetryAfter.get(username)) {
+      if (method === "EMAIL" && !mfaSession.EmailRetryAfter.get(usernameKey)) {
         handleSendEmail();
       }
     },
-    [username, handleSendEmail],
+    [usernameKey, handleSendEmail],
   );
 
   const handleSubmit: (event: React.SyntheticEvent) => Promise<void> =
@@ -174,11 +185,11 @@ export function MFAForm({
     inputRef?.current?.focus();
 
     if (mfaMethod === "EMAIL") {
-      const count = getTimeoutOfEmailRetryByUser(username);
+      const count = getTimeoutOfEmailRetryByUser(usernameKey);
       setRetryCount(count);
     }
     setShowResend(true);
-  }, [mfaMethod, username]);
+  }, [mfaMethod, usernameKey]);
 
   useEffect(() => {
     if (mfaMethod === "EMAIL" && retryCount > 0) {
@@ -194,10 +205,18 @@ export function MFAForm({
   useEffect(() => {
     // if default method is email then
     // no need to execute initial email attempt
-    if (username && emailRetryAfter) {
-      mfaSession.EmailRetryAfter.set(username, emailRetryAfter as string);
+    if (usernameKey && emailRetryAfter) {
+      const current = mfaSession.EmailRetryAfter.get(usernameKey);
+
+      // Only set if storage is empty or the route value is newer than stored value
+      // This prevents stale route state (on F5 refresh) from overwriting new resend timers
+      if (!current || moment(emailRetryAfter).isAfter(moment(current))) {
+        mfaSession.EmailRetryAfter.set(usernameKey, emailRetryAfter);
+        const diff = getTimeoutOfEmailRetryByUser(usernameKey);
+        setRetryCount(diff);
+      }
     }
-  }, [username, emailRetryAfter]);
+  }, [usernameKey, emailRetryAfter]);
 
   const authOptions = (
     [
@@ -242,7 +261,7 @@ export function MFAForm({
   }
 
   return (
-    <Box className={styles.container}>
+    <Box className={styles.container} data-testid="mfa-page">
       <Box
         className={styles.paper}
         shadow={shadow ? "2xl" : false}
@@ -252,24 +271,30 @@ export function MFAForm({
         p={3}
         mb={3}
       >
-        <AppSignInLogo className={styles.logo} />
-        <Box as="form" w={100} onSubmit={handleSubmit} mt={3}>
+        <AppSignInLogo className={styles.logo} data-testid="logo" />
+        <Box
+          as="form"
+          w={100}
+          onSubmit={handleSubmit}
+          mt={3}
+          data-testid="form"
+        >
           <Box>
-            <Box mt={2} mb={3} as="h3" textAlign={"center"}>
+            <Box mt={2} mb={3} as="h3" textAlign={"center"} data-testid="title">
               {getTitle()}
             </Box>
-            <Box as="p" textAlign={"center"}>
+            <Box as="p" textAlign={"center"} data-testid="description">
               {getDescription()}
             </Box>
           </Box>
 
-          <Box>
-            <InputLabel htmlFor="mfaCode">
+          <Box data-testid="field-code">
+            <InputLabel htmlFor="mfaCode" data-testid="label">
               {i18n.get("Verification code")}
             </InputLabel>
             <Input
               ref={inputRef}
-              id="mfaCode"
+              id={codeId}
               name="mfaCode"
               autoFocus
               value={mfaCode}
@@ -278,11 +303,22 @@ export function MFAForm({
               autoCorrect="off"
               spellCheck="false"
               placeholder={getPlaceholder()}
+              aria-required="true"
+              aria-describedby={alert ? alertId : undefined}
+              data-testid="input"
             />
           </Box>
 
           {alert && (
-            <Alert mt={3} mb={1} p={2} variant={alert.variant}>
+            <Alert
+              mt={3}
+              mb={1}
+              p={2}
+              variant={alert.variant}
+              id={alertId}
+              role="alert"
+              data-testid="error"
+            >
               {alert.message}
             </Alert>
           )}
@@ -297,6 +333,8 @@ export function MFAForm({
             mt={2}
             w={100}
             gap={4}
+            data-testid="btn-verify"
+            aria-label={i18n.get("Verify")}
           >
             {i18n.get("Verify")}
           </LoadingButton>
@@ -310,6 +348,12 @@ export function MFAForm({
                 disabled={!showResend || retryCount > 0}
                 justifyContent={"center"}
                 onClick={handleSendEmail}
+                data-testid="btn-resend-email"
+                aria-label={
+                  retryCount > 0
+                    ? i18n.get("Resend email in ({0})s", retryCount)
+                    : i18n.get("Resend email")
+                }
               >
                 {retryCount > 0
                   ? i18n.get("Resend email in ({0})s", retryCount)
@@ -326,10 +370,14 @@ export function MFAForm({
                 d="flex"
                 justifyContent={"center"}
                 onClick={() => setShowOptions(!showOptions)}
+                aria-expanded={showOptions}
+                data-testid="btn-other-options"
+                aria-label={i18n.get("Other options")}
               >
                 {i18n.get("Other options")}
                 <MaterialIcon
                   icon={showOptions ? "arrow_drop_up" : "arrow_drop_down"}
+                  aria-hidden="true"
                 />
               </Button>
             </Box>
@@ -347,6 +395,7 @@ export function MFAForm({
                     onClick={() =>
                       handleMFAMethodChange(option.key as MFAMethod)
                     }
+                    data-testid={`btn-method-${option.key.toLowerCase()}`}
                   >
                     {option.title}
                   </Button>

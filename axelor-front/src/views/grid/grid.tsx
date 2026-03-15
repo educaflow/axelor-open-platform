@@ -65,7 +65,7 @@ import {
 
 import { Dms } from "../dms";
 import { fetchRecord } from "../form";
-import { createFormAtom } from "../form/builder/atoms";
+import { useCreateFormAtomByMeta } from "../form/builder/atoms";
 import { useActionExecutor, useAfterActions } from "../form/builder/scope";
 import {
   createContextParams,
@@ -83,9 +83,10 @@ import {
   GridExpandableContext,
   useSetRootCollectionTreeColumnAttrs,
 } from "./builder/scope";
-import { AUTO_ADD_ROW, getSortBy, useGridState } from "./builder/utils";
+import { AUTO_ADD_ROW, useGridSortBy, useGridState } from "./builder/utils";
 import { SearchColumn } from "./renderers/search";
 import { getSearchFilter } from "./renderers/search/utils";
+import { SummaryBarHandler } from "./builder/summary-bar";
 
 import styles from "./grid.module.scss";
 
@@ -144,7 +145,8 @@ function GridInner(props: ViewProps<GridView>) {
   const { hasButton } = useViewPerms(meta);
 
   const viewRoute = useViewRoute();
-  const pageSetRef = useRef(false);
+  const searchResultRef = useRef<SearchResult | null>(null);
+  const [pageSet, setPageSet] = useState(false);
   const gridRef = useRef<GridHandler>(null);
   const selectedIdsRef = useRef<number[]>([]);
   const saveIdRef = useRef<number>(null);
@@ -154,6 +156,7 @@ function GridInner(props: ViewProps<GridView>) {
   const [massUpdatePopperEl, setMassUpdatePopperEl] =
     useState<HTMLElement | null>();
   const [viewProps, setViewProps] = useViewProps();
+  const summaryBarHandlerRef = useRef<SummaryBarHandler | null>(null);
 
   const {
     action,
@@ -243,12 +246,13 @@ function GridInner(props: ViewProps<GridView>) {
 
   const getSearchTranslate = useSearchTranslate(orderBy, fields);
 
+  const sortBy = useGridSortBy(state);
+
   const getSearchOptions = useAtomCallback(
     useCallback(
       (get, set, options: SearchOptions = {}) => {
         const { query = {}, search } = get(searchAtom!);
 
-        const sortBy = getSortBy(orderBy);
         const searchQuery = getSearchFilter(fields as any, view.items, search);
 
         const filter: SearchOptions["filter"] = {
@@ -289,7 +293,7 @@ function GridInner(props: ViewProps<GridView>) {
         };
       },
       [
-        orderBy,
+        sortBy,
         searchAtom,
         fields,
         view,
@@ -308,10 +312,25 @@ function GridInner(props: ViewProps<GridView>) {
     [dataStore, getSearchOptions],
   );
 
+  const refreshSummaryBar = useCallback(
+    (result: SearchResult | null = searchResultRef.current) => {
+      // refresh summary bar if any
+      if (summaryBarHandlerRef?.current && result) {
+        const recordIds = result.records.map((r) => r.id!);
+        summaryBarHandlerRef?.current?.refresh?.(recordIds, getActionData());
+      }
+    },
+    [getActionData],
+  );
+
   const doSearch = useCallback(
-    (options: SearchOptions = {}) =>
-      dataStore.search(getSearchOptions(options)),
-    [dataStore, getSearchOptions],
+    async (options: SearchOptions = {}) => {
+      const result = await dataStore.search(getSearchOptions(options));
+      searchResultRef.current = result;
+      refreshSummaryBar(result);
+      return result;
+    },
+    [dataStore, refreshSummaryBar, getSearchOptions],
   );
 
   const onSearch = useAfterActions(doSearch);
@@ -518,10 +537,13 @@ function GridInner(props: ViewProps<GridView>) {
         },
         { ...options, ...(fields.length ? { fields } : {}) },
       );
-      saved && setDirty(false);
+      if (saved) {
+        setDirty(false);
+        refreshSummaryBar();
+      }
       return saved;
     },
-    [dataStore, meta, setDirty],
+    [dataStore, meta, setDirty, refreshSummaryBar],
   );
 
   const onDiscard = useCallback(() => {
@@ -703,15 +725,18 @@ function GridInner(props: ViewProps<GridView>) {
   const minPage = 1;
   const maxPage = Math.ceil(totalCount / limit);
   const hasRowSelected = !!selectedRows?.length;
+
   const currentPage = useMemo(() => {
     if (dashlet) return 0;
-    const hasPageSet = pageSetRef.current;
-    pageSetRef.current = true;
-    if (hasPageSet || dataStore.records.length === 0) {
+    if (pageSet || dataStore.records.length === 0) {
       return +(viewRoute?.id || 1);
     }
     return Math.floor(offset / limit) + 1;
-  }, [dataStore, offset, limit, viewRoute?.id, dashlet]);
+  }, [dataStore, offset, limit, viewRoute?.id, dashlet, pageSet]);
+
+  useEffect(() => {
+    if (!pageSet) setPageSet(true);
+  }, [pageSet]);
 
   const updatePage = useCallback(
     (page: number) => {
@@ -734,14 +759,7 @@ function GridInner(props: ViewProps<GridView>) {
     [action, view, getViewContext],
   );
 
-  const formAtom = useMemo(
-    () =>
-      createFormAtom({
-        meta: meta as any,
-        record: {},
-      }),
-    [meta],
-  );
+  const formAtom = useCreateFormAtomByMeta(meta);
 
   const handleRowSave = useAtomCallback(
     useCallback(
@@ -898,23 +916,25 @@ function GridInner(props: ViewProps<GridView>) {
 
   const searchOptions = useMemo(() => {
     const options: Partial<SearchOptions> = {
-      sortBy: getSortBy(orderBy),
+      sortBy,
     };
     if (currentPage) {
       return { ...options, offset: (currentPage - 1) * limit };
     }
     return options;
-  }, [orderBy, currentPage, limit]);
+  }, [sortBy, currentPage, limit]);
 
   const onGridSearch = useCallback(
     (options?: SearchOptions) => {
       if (cacheDataRef.current) {
         cacheDataRef.current = false;
         if (isEqual(dataStore.options?.fields, options?.fields)) {
-          return Promise.resolve({
+          const result = {
             records: dataStore.records,
             page: dataStore.page,
-          } as SearchResult);
+          } as SearchResult;
+          refreshSummaryBar(result);
+          return Promise.resolve(result);
         }
       }
 
@@ -933,7 +953,7 @@ function GridInner(props: ViewProps<GridView>) {
       }
       return (onSearchRef.current = onSearch)(options);
     },
-    [onSearch, dataStore],
+    [onSearch, refreshSummaryBar, dataStore],
   );
 
   const onGridColumnSearch = useCallback(
@@ -1257,6 +1277,7 @@ function GridInner(props: ViewProps<GridView>) {
       {showToolbar && (
         <ViewToolBar
           meta={meta}
+          formAtom={formAtom}
           actions={[
             {
               key: "new",
@@ -1331,7 +1352,9 @@ function GridInner(props: ViewProps<GridView>) {
             canNext,
             onPrev: handlePrev,
             onNext: handleNext,
-            text: () => <PageText dataStore={dataStore} />,
+            text: () => (
+              <PageText onResult={refreshSummaryBar} dataStore={dataStore} />
+            ),
           }}
         >
           {searchAtom && (
@@ -1355,6 +1378,7 @@ function GridInner(props: ViewProps<GridView>) {
         <div className={styles["grid-view"]} style={gridViewStyles}>
           <GridWrapper state={state} isTreeGrid={Boolean(isTreeGrid)}>
             <GridComponent
+              data-testid="grid"
               className={styles.grid}
               ref={gridRef}
               records={records}
@@ -1388,6 +1412,7 @@ function GridInner(props: ViewProps<GridView>) {
               onRowReorder={onRowReorder}
               noRecordsText={i18n.get("No records found.")}
               onColumnCustomize={onColumnCustomize}
+              summaryBarHandler={summaryBarHandlerRef}
               {...(dashlet ? {} : searchProps)}
               {...dashletProps}
               {...popupProps}
