@@ -1218,6 +1218,7 @@ function OneToManyInner({
         readonly: false,
         maximize: isPopupMaximized(schema, "editor"),
         viewName: formView,
+        canSave: viewData?.view?.canSave,
         context: {
           _parent: getContext(),
         },
