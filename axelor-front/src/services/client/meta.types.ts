@@ -527,6 +527,7 @@ export interface FormView extends View, LayoutContainer {
   canCancel?: string;
   canMore?: string;
   canBackOnSave?: string;
+  related?: string;
   toolbar?: Button[];
   menubar?: Menu[];
   items?: (

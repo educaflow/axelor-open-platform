@@ -2230,6 +2230,13 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="related" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Datos a cargar al hacer el fetch. Se añaden a los datos del registro actual, y se pueden usar para mostrar campos relacionados en la vista o pasarlos a las acciones.
+              El formato es un JSON con la forma Record string, string[], donde el string es el nombre de una propiedad del modelo, y el array de strings son las subpropiedades a cargar de esa propiedad.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="canBackOnSave" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>Si al hacer el save se hace un back para volver a la página anterior.

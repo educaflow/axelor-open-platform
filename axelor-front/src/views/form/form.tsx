@@ -93,7 +93,14 @@ export const fetchRecord = async (
 ) => {
   if (id && +id > 0) {
     const fields = Object.keys(meta.fields ?? {});
-    const related = meta.related;
+    const parsed: Record<string, string[]> = JSON.parse(meta.view.related || "{}");
+    const related = Object.entries(parsed).reduce(
+      (acc, [key, values]) => {
+        acc[key] = [...new Set([...(acc[key] ?? []), ...values])];
+        return acc;
+      },
+      JSON.parse(JSON.stringify(meta.related ?? {})) as Record<string, string[]>
+    );
     return dataStore.read(+id, { fields, related, select });
   }
   const defaults = getDefaultValues(meta.fields, meta.view.items);

@@ -37,7 +37,8 @@ export const DEFAULT_ATTRS = {
   canCancel: undefined as unknown as boolean,
   canBack: undefined as unknown as boolean,
   canMore: undefined as unknown as boolean,
-  canBackOnSave: undefined as unknown as boolean
+  canBackOnSave: undefined as unknown as boolean,
+  related: undefined as unknown as string
 };
 
 export type Attrs = Partial<typeof DEFAULT_ATTRS> & {

@@ -52,6 +52,7 @@ public class FormView extends AbstractView implements ContainerView, ExtendableV
   @XmlAttribute private String canBack;
   @XmlAttribute private String canMore;
   @XmlAttribute private String canBackOnSave;
+  @XmlAttribute private String related;
 
 
   @XmlAttribute private Integer cols;
@@ -195,7 +196,9 @@ public class FormView extends AbstractView implements ContainerView, ExtendableV
   public String getCanBackOnSave() {
     return canBackOnSave;
   }
-
+  public String getRelated() {
+    return related;
+  }
   public void setCanArchive(String canArchive) {
     this.canArchive = canArchive;
   }
@@ -214,6 +217,9 @@ public class FormView extends AbstractView implements ContainerView, ExtendableV
 
   public void setCanBackOnSave(String canBackOnSave) {
     this.canBackOnSave = canBackOnSave;
+  }
+  public void setRelated(String related) {
+    this.related = related;
   }
   public String getCanCopy() {
     return canCopy;
