@@ -523,7 +523,7 @@ const FormContainer = memo(function FormContainer({
   const canSaveNew = canNew && !record.id;
   const hasEdit = hasButton("edit") || canSaveNew;
   const hasSave = hasButton("save") || canSaveNew;
-
+  const canBackOnSave = hasButton("canBackOnSave");
   const readonly = useMemo(() => {
     // from perms or dynamic js attributes (readonlyIf, canEdit, ...)
     if (readonlyExclusive || !hasEdit) {
@@ -890,6 +890,12 @@ const FormContainer = memo(function FormContainer({
           });
         }
 
+        if (canBackOnSave) {
+          if (prevType) {
+            switchTo(prevType);
+          }
+        }        
+        
         return res;
       },
       [
@@ -903,6 +909,9 @@ const FormContainer = memo(function FormContainer({
         doValidate,
         readonly,
         prepareRecordForSave,
+        prevType, 
+        switchTo,
+        canBackOnSave
       ],
     ),
   );
@@ -918,7 +927,7 @@ const FormContainer = memo(function FormContainer({
       [actionExecutor, doSave],
     ),
   );
-  const canBackOnSave = hasButton("canBackOnSave");
+
   const handleOnSave = useCallback(async () => {
     try {
       await onSave({
