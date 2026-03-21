@@ -20,14 +20,19 @@ function App() {
     document.documentElement.dir = dir;
   }, [dir, lang]);
 
-  
+
   useEffect(() => {
     insertFromHTML(document.head, `${import.meta.env.BASE_URL}includes/head.start.include.html`, "start");
     insertFromHTML(document.head, `${import.meta.env.BASE_URL}includes/head.end.include.html`, "end");
     insertFromHTML(document.body, `${import.meta.env.BASE_URL}includes/body.start.include.html`, "start");
     insertFromHTML(document.body, `${import.meta.env.BASE_URL}includes/body.end.include.html`, "end");
+  }, []); 
+
+
+  useEffect(() => {
     axelor.notifyListeners();
   }, [theme, options, dir, lang]);
+  
   return (
     <ThemeProvider dir={dir} theme={theme} options={options}>
       <Routes />
