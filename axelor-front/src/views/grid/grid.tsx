@@ -229,6 +229,7 @@ function GridInner(props: ViewProps<GridView>) {
     action.params?.["popup"] || action.params?.["dashlet.in.popup"];
   const hasPopupMaximize = popupOptions?.fullScreen;
   const cacheDataRef = useRef(!action.params?.["reload-dotted"]);
+  const reloadGrid = useRef(!action.params?.["reload-grid"]);
 
   const { editable: _editable, onDelete: onDeleteAction, inlineHelp } = view;
   const canShowHelp = !sessionData?.user?.noHelp && inlineHelp;
@@ -926,6 +927,11 @@ function GridInner(props: ViewProps<GridView>) {
 
   const onGridSearch = useCallback(
     (options?: SearchOptions) => {
+
+      if (reloadGrid) {
+        return (onSearchRef.current = onSearch)(options);
+      }
+      
       if (cacheDataRef.current) {
         cacheDataRef.current = false;
         if (isEqual(dataStore.options?.fields, options?.fields)) {
