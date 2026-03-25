@@ -126,6 +126,7 @@ export class FormActionHandler extends DefaultActionHandler {
   #refreshHandler?: AsyncHandler;
   #validateHandler?: AsyncHandler;
   #closeHandler?: AsyncHandler;
+  #backHandler?: AsyncHandler;
 
   constructor(prepareContext: ContextCreator) {
     super();
@@ -147,6 +148,10 @@ export class FormActionHandler extends DefaultActionHandler {
   setCloseHandler(handler: AsyncHandler) {
     this.#closeHandler = handler;
   }
+
+  setBackHandler(handler: AsyncHandler) {
+    this.#backHandler = handler;
+  }  
 
   getContext() {
     return this.#prepareContext();
@@ -211,6 +216,10 @@ export class FormActionHandler extends DefaultActionHandler {
     await this.#saveHandler?.(record);
   }
 
+  async back() {
+    await this.#backHandler?.();
+  }
+  
   async refresh() {
     return await this.#refreshHandler?.();
   }

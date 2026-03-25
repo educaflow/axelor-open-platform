@@ -45,4 +45,8 @@ export class DefaultActionHandler implements ActionHandler {
   notify(data: ActionData) {
     this.#listeners.forEach((fn) => fn(data));
   }
+
+  back(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
 }

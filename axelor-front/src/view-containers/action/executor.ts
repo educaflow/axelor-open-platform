@@ -235,6 +235,10 @@ export class DefaultActionExecutor implements ActionExecutor {
       return this.#handler.save();
     }
 
+    if (action === "back") {
+      return this.#handler.back();
+    }   
+
     const context = this.#handler.getContext();
     const model = context._model ?? options?.context?._model ?? "";
     const data = {
@@ -327,6 +331,10 @@ export class DefaultActionExecutor implements ActionExecutor {
       document.dispatchEvent(event);
     }
 
+    if (data.signal === "back") {
+      return this.#handler.back();
+    }    
+    
     if (data.info) {
       const waitForDialog = dialogs.box({
         title: data.info.title,

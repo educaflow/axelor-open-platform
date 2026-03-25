@@ -71,6 +71,7 @@ export interface ActionHandler {
   edit(record?: DataRecord | null): Promise<void>;
 
   validate(): Promise<void>;
+  back(): Promise<void>;
 
   refresh(target?: string): Promise<void>;
 

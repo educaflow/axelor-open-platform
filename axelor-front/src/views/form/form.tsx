@@ -762,6 +762,14 @@ const FormContainer = memo(function FormContainer({
     ),
   );
 
+  const doBack = useCallback(async () => {
+    if (prevType) {
+      switchTo(prevType);
+    }
+  }, [prevType,switchTo]);  
+  
+  actionHandler.setBackHandler(doBack);
+  
   const getFieldErrors = useGetErrors();
   const getErrors = useAtomCallback(
     useCallback(
