@@ -43,9 +43,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** This class provides some helper methods to deal with files. */
 public class MetaFiles {
+
+  private static final Logger log = LoggerFactory.getLogger(MetaFiles.class);
 
   private static final String UPLOAD_NAME_PATTERN_AUTO = "auto";
 
@@ -346,6 +350,7 @@ public class MetaFiles {
       try {
         return filesRepo.save(metaFile);
       } catch (Exception e) {
+        log.error("Error saving MetaFile, attempting recovery. fileName={}, filePath={}", metaFile.getFileName(), filePath, e);
         // delete the uploaded file
         try {
           store.deleteFile(filePath);
