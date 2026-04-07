@@ -26,7 +26,7 @@ export async function insertFromHTML(
     ];
 
     if (nodesToInsert.length === 0) {
-      console.warn(`No hay nodos para insertar en ${url}`);
+      //console.warn(`No hay nodos para insertar en ${url}`);
       return;
     }
 
