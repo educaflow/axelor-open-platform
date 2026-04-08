@@ -182,6 +182,18 @@ export type Tab = {
     showToolbar?: boolean;
 
     /**
+     * Whether to show the toolbar in grid view.
+     *
+     */
+    showToolbarGrid?: boolean;
+
+    /**
+     * Whether to show the toolbar in form view.
+     *
+     */
+    showToolbarForm?: boolean;
+
+    /**
      * Whether to show the edit icon in grid popup.
      *
      */
@@ -373,6 +385,8 @@ export async function initTab(
     const popupOptions = {
       fullScreen: Boolean(actionView.params?.["popup.maximized"]),
       showToolbar: actionView.params?.["show-toolbar"] !== false,
+      showToolbarGrid: actionView.params?.["show-toolbar-grid"] !== false,
+      showToolbarForm: actionView.params?.["show-toolbar-form"] !== false,
       showEditIcon: actionView.params?.["_popup-edit-icon"] !== false,
       multiSelect: actionView.params?.["_popup-multi-select"] !== false,
     };

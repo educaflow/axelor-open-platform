@@ -982,7 +982,9 @@ function GridInner(props: ViewProps<GridView>) {
     );
   }, [gridSearchAtom, onGridColumnSearch]);
 
-  const showToolbar = popupOptions?.showToolbar !== false;
+  const showToolbar =
+    popupOptions?.showToolbar !== false &&
+    popupOptions?.showToolbarGrid !== false;
   const showEditIcon = popupOptions?.showEditIcon !== false && canEdit;
   const showCheckbox = popupOptions?.multiSelect !== false;
 

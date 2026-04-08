@@ -1191,7 +1191,9 @@ const FormContainer = memo(function FormContainer({
   );
   const setPopupHandlers = useSetPopupHandlers();
 
-  const showToolbar = popupOptions?.showToolbar !== false;
+  const showToolbar =
+    popupOptions?.showToolbar !== false &&
+    popupOptions?.showToolbarForm !== false;
 
   const getState = useAtomCallback(
     useCallback((get) => get(formAtom), [formAtom]),
