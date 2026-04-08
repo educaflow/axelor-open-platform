@@ -121,7 +121,7 @@ export class DefaultActionExecutor implements ActionExecutor {
   constructor(handler: ActionHandler) {
     this.#handler = handler;
   }
-
+  
   #ensureLast(actions: string[], name: string) {
     const index = actions.indexOf(name);
     const length = actions.length;
@@ -237,7 +237,11 @@ export class DefaultActionExecutor implements ActionExecutor {
 
     if (action === "back") {
       return this.#handler.back();
-    }   
+    }
+
+    if (action === "delete") {
+      return this.#handler.borrar();
+    }
 
     const context = this.#handler.getContext();
     const model = context._model ?? options?.context?._model ?? "";
@@ -333,8 +337,9 @@ export class DefaultActionExecutor implements ActionExecutor {
 
     if (data.signal === "back") {
       return this.#handler.back();
-    }    
+    }
     
+
     if (data.info) {
       const waitForDialog = dialogs.box({
         title: data.info.title,

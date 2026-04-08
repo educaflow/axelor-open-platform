@@ -72,7 +72,7 @@ export interface ActionHandler {
 
   validate(): Promise<void>;
   back(): Promise<void>;
-
+  borrar(): Promise<void>;
   refresh(target?: string): Promise<void>;
 
   close(): Promise<void>;

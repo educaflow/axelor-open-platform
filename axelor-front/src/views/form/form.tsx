@@ -769,7 +769,8 @@ const FormContainer = memo(function FormContainer({
   }, [prevType,switchTo]);  
   
   actionHandler.setBackHandler(doBack);
-  
+
+
   const getFieldErrors = useGetErrors();
   const getErrors = useAtomCallback(
     useCallback(
@@ -1060,6 +1061,11 @@ const FormContainer = memo(function FormContainer({
     ),
   );
 
+  const doBorrar = useCallback(async () => {
+    await onDelete();
+  }, [onDelete]);
+  actionHandler.setBorrarHandler(doBorrar);
+  
   const onCopy = useCallback(async () => {
     if (record.id) {
       const rec = await dataStore.copy(record.id);
