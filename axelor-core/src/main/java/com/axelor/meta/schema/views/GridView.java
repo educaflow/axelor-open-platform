@@ -61,6 +61,10 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
 
   @XmlAttribute private Boolean canMove;
 
+  @XmlAttribute private Boolean canRefresh;
+
+  @XmlAttribute private Boolean canAdvanceSearch;
+
   @XmlAttribute(name = "summary-view")
   private String summaryView;
 
@@ -258,6 +262,22 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
 
   public void setCanMove(Boolean canMove) {
     this.canMove = canMove;
+  }
+
+  public Boolean getCanRefresh() {
+    return canRefresh;
+  }
+
+  public void setCanRefresh(Boolean canRefresh) {
+    this.canRefresh = canRefresh;
+  }
+
+  public Boolean getCanAdvanceSearch() {
+    return canAdvanceSearch;
+  }
+
+  public void setCanAdvanceSearch(Boolean canAdvanceSearch) {
+    this.canAdvanceSearch = canAdvanceSearch;
   }
 
   public Boolean getEditIcon() {

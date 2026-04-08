@@ -1346,6 +1346,7 @@ function GridInner(props: ViewProps<GridView>) {
             {
               key: "refresh",
               text: i18n.get("Refresh"),
+              hidden: view.canRefresh === false,
               iconProps: {
                 icon: "refresh",
               },
@@ -1365,7 +1366,7 @@ function GridInner(props: ViewProps<GridView>) {
             ),
           }}
         >
-          {searchAtom && (
+          {searchAtom && view.canAdvanceSearch !== false && (
             <AdvanceSearch
               stateAtom={searchAtom}
               dataStore={dataStore}

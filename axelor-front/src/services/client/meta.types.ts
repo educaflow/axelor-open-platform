@@ -557,6 +557,8 @@ export interface GridView extends View {
   canDelete?: boolean;
   canArchive?: boolean;
   canMove?: boolean;
+  canRefresh?: boolean;
+  canAdvanceSearch?: boolean;
   editIcon?: boolean;
   rowHeight?: number;
   colWidth?: number;

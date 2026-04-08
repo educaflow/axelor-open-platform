@@ -1693,6 +1693,16 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="canRefresh" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>Specify whether to show the 'Refresh' button.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="canAdvanceSearch" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>Specify whether to show the advance search bar.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attributeGroup ref="tns:ExtraCollectionAttributes" />
       </xsd:extension>
     </xsd:complexContent>
