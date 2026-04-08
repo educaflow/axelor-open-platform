@@ -764,9 +764,12 @@ const FormContainer = memo(function FormContainer({
 
   const doBack = useCallback(async () => {
     if (prevType) {
-      switchTo(prevType);
+      showConfirmDirty(
+        async () => isDirty,
+        async () => switchTo(prevType),
+      );
     }
-  }, [prevType,switchTo]);  
+  }, [prevType, switchTo, isDirty, showConfirmDirty]);  
   
   actionHandler.setBackHandler(doBack);
 
