@@ -1662,6 +1662,11 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="newButtonTitle" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Specify a custom title for the 'New' button. When set, the button icon is hidden and the title text is shown instead.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="canNew" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>Specify whether to show the 'New' button.</xsd:documentation>

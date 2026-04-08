@@ -551,6 +551,7 @@ export interface GridView extends View {
   customSearch?: boolean;
   freeSearch?: string;
   onNew?: string;
+  newButtonTitle?: string;
   canNew?: boolean;
   canEdit?: boolean;
   canSave?: boolean;

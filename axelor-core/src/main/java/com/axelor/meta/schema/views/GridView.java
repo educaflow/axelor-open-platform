@@ -49,6 +49,8 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
 
   @XmlAttribute private String onDelete;
 
+  @XmlAttribute private String newButtonTitle;
+
   @XmlAttribute private Boolean canNew;
 
   @XmlAttribute private Boolean canEdit;
@@ -214,6 +216,14 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
 
   public void setOnDelete(String onDelete) {
     this.onDelete = onDelete;
+  }
+
+  public String getNewButtonTitle() {
+    return newButtonTitle;
+  }
+
+  public void setNewButtonTitle(String newButtonTitle) {
+    this.newButtonTitle = newButtonTitle;
   }
 
   public Boolean getCanNew() {

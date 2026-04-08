@@ -1289,11 +1289,13 @@ function GridInner(props: ViewProps<GridView>) {
           actions={[
             {
               key: "new",
-              text: i18n.get("New"),
+              text: view.newButtonTitle
+                ? i18n.get(view.newButtonTitle)
+                : i18n.get("New"),
               hidden: !canNew,
-              iconProps: {
-                icon: "add",
-              },
+              ...(view.newButtonTitle
+                ? { iconOnly: false }
+                : { iconProps: { icon: "add" } }),
               onClick: handleNew,
             },
             {
