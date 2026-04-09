@@ -18,6 +18,10 @@ import com.axelor.common.Inflector;
 import com.axelor.common.ObjectUtils;
 import com.axelor.common.StringUtils;
 import com.axelor.db.EntityHelper;
+import com.axelor.db.modelservice.ModelService;
+import com.axelor.db.modelservice.ModelServiceFactory;
+import com.axelor.db.modelservice.businessmessage.BusinessException;
+import com.axelor.db.modelservice.businessmessage.internal.BusinessMessageHelper;
 import com.axelor.db.JPA;
 import com.axelor.db.JpaRepository;
 import com.axelor.db.JpaSecurity;
@@ -1233,8 +1237,9 @@ public class Resource<T extends Model> {
   @SuppressWarnings("all")
   public Response save(final Request request) {
 
-    final Response response = new Response();
+    final Response response = new ActionResponse();
     final Repository repository = JpaRepository.of(model);
+    final ModelService<T> modelService = ModelServiceFactory.resolve(model, repository);
 
     final List<Object> records;
 
@@ -1269,13 +1274,14 @@ public class Resource<T extends Model> {
               continue;
             }
 
-            record = repository.validate((Map) record, request.getContext());
+            record = modelService.validate((Map) record, request.getContext());
 
             final Long id = findId((Map) record);
+            final boolean isNew = (id == null || id <= 0L);
             final JpaSecurity.AccessType accessType;
 
             // Check for permissions on main object
-            if (id == null || id <= 0L) {
+            if (isNew) {
               accessType = JpaSecurity.CAN_CREATE;
               security.get().check(accessType, model);
             } else {
@@ -1289,6 +1295,8 @@ public class Resource<T extends Model> {
             Map<String, Object> orig = (Map) ((Map) record).get("_original");
             JPA.verify(model, orig);
 
+            Model originalModel = getOriginalModel(repository, id, isNew);
+
             Model bean = JPA.edit(model, (Map) record);
 
             // if user, update password
@@ -1296,9 +1304,17 @@ public class Resource<T extends Model> {
               changeUserPassword(user, (Map) record);
             }
 
+            Map<String,Object> mapBusinessExceptions=new HashMap<>();
+
             bean = JPA.manage(bean);
-            if (repository != null) {
-              bean = repository.save(bean);
+            try {
+              if (isNew) {
+                bean = modelService.insert((T) bean);
+              } else {
+                bean = modelService.update((T) bean, (T) originalModel);
+              }
+            } catch (BusinessException businessException) {
+              mapBusinessExceptions=BusinessMessageHelper.getAsMap(businessException.getBusinessMessages());
             }
 
             // check permission rules again
@@ -1309,7 +1325,9 @@ public class Resource<T extends Model> {
               I18nBundle.invalidate();
             }
 
-            data.add(repository.populate(toMap(bean, request), request.getContext()));
+            Map<String, Object> jsonMapResponse = repository.populate(toMap(bean, request), request.getContext());
+            jsonMapResponse.putAll(mapBusinessExceptions);
+            data.add(jsonMapResponse);
           }
         });
 
@@ -1410,9 +1428,11 @@ public class Resource<T extends Model> {
   public Response remove(long id, Request request) {
 
     security.get().check(JpaSecurity.CAN_REMOVE, model, id);
-    final Response response = new Response();
+    final Response response = new ActionResponse();
     final Repository repository = JpaRepository.of(model);
+    final ModelService<T> modelService = ModelServiceFactory.resolve(model, repository);
     final Map<String, Object> data = new HashMap<>();
+    final Map<String, Object> returnData;
 
     data.put("id", id);
     data.put("version", request.getData().get("version"));
@@ -1421,21 +1441,26 @@ public class Resource<T extends Model> {
 
     firePreRequestEvent(RequestEvent.REMOVE, req);
 
-    final Model removedBean =
-        JPA.callInTransaction(
-            () -> {
-              Model bean = JPA.edit(model, data);
-              if (bean.getId() != null) {
-                if (repository == null) {
-                  JPA.remove(bean);
-                } else {
-                  repository.remove(bean);
+    final Map<String, Object> removedMapBean =
+          JPA.callInTransaction(
+              () -> {
+                Map<String,Object> mapBusinessExceptions=new HashMap<>();
+                Model bean = JPA.edit(model, data);
+                if (bean.getId() != null) {
+                  try {
+                    modelService.remove((T) bean);
+                  } catch (BusinessException businessException) {
+                    mapBusinessExceptions=BusinessMessageHelper.getAsMap(businessException.getBusinessMessages());
+                  }
                 }
-              }
-              return bean;
-            });
 
-    response.setData(List.of(toMapCompact(removedBean)));
+                Map<String, Object> innerRemovedMapBean=toMapCompact(bean);
+                innerRemovedMapBean.putAll(mapBusinessExceptions);
+
+                return innerRemovedMapBean;
+              });
+
+    response.setData(List.of(removedMapBean));
     response.setStatus(Response.STATUS_SUCCESS);
 
     firePostRequestEvent(RequestEvent.REMOVE, req, response);
@@ -1446,8 +1471,9 @@ public class Resource<T extends Model> {
   @SuppressWarnings("all")
   public Response remove(Request request) {
 
-    final Response response = new Response();
+    final Response response = new ActionResponse();
     final Repository repository = JpaRepository.of(model);
+    final ModelService<T> modelService = ModelServiceFactory.resolve(model, repository);
     final List<Object> records = request.getRecords();
 
     if (records == null || records.isEmpty()) {
@@ -1456,36 +1482,38 @@ public class Resource<T extends Model> {
 
     firePreRequestEvent(RequestEvent.REMOVE, request);
 
-    JPA.runInTransaction(
-        () -> {
-          final List<Model> entities = new ArrayList<>();
+      JPA.runInTransaction(
+          () -> {
+            final List<Model> entities = new ArrayList<>();
 
-          for (Object record : records) {
-            Map map = (Map) record;
-            Long id = Longs.tryParse(map.get("id").toString());
-            Integer version = null;
-            try {
-              version = Ints.tryParse(map.get("version").toString());
-            } catch (Exception e) {
+            for (Object record : records) {
+              Map map = (Map) record;
+              Long id = Longs.tryParse(map.get("id").toString());
+              Integer version = null;
+              try {
+                version = Ints.tryParse(map.get("version").toString());
+              } catch (Exception e) {
+              }
+
+              security.get().check(JpaSecurity.CAN_REMOVE, model, id);
+              Model bean = JPA.find(model, id);
+
+              if (bean == null || (version != null && !Objects.equals(version, bean.getVersion()))) {
+                throw new OptimisticLockException(new StaleObjectStateException(model.getName(), id));
+              }
+              entities.add(bean);
             }
 
-            security.get().check(JpaSecurity.CAN_REMOVE, model, id);
-            Model bean = JPA.find(model, id);
-
-            if (bean == null || (version != null && !Objects.equals(version, bean.getVersion()))) {
-              throw new OptimisticLockException(new StaleObjectStateException(model.getName(), id));
+            int i=0;
+            for (Model entity : entities) {
+              try {
+                modelService.remove((T) entity);
+              } catch (BusinessException businessException) {
+                ((Map)records.get(i)).putAll(BusinessMessageHelper.getAsMap(businessException.getBusinessMessages()));
+              }
+              i++;
             }
-            entities.add(bean);
-          }
-
-          for (Model entity : entities) {
-            if (repository == null) {
-              JPA.remove(entity);
-            } else {
-              repository.remove(entity);
-            }
-          }
-        });
+          });
 
     response.setData(records);
     response.setStatus(Response.STATUS_SUCCESS);
@@ -1876,4 +1904,19 @@ public class Resource<T extends Model> {
     }
     return map;
   }
+
+  private Model getOriginalModel(Repository repository, Long id, boolean isNew) {
+    Model originalModel = null;
+    if (!isNew) {
+      Optional<Model> optionalModel = repository.findById(id);
+      if (optionalModel.isPresent()) {
+        originalModel = optionalModel.get();
+        JPA.em().detach(originalModel);
+      }
+    }
+
+    return originalModel;
+  }
+
+
 }
