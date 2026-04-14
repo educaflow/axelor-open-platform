@@ -211,9 +211,11 @@ export class DefaultActionExecutor implements ActionExecutor {
       return;
     }
 
-    // `new` and `close` must be the last action
+    // `new`, `close`, `back` and `delete` must be the last action
     this.#ensureLast(actions, "new");
     this.#ensureLast(actions, "close");
+    this.#ensureLast(actions, "back");
+    this.#ensureLast(actions, "delete");
 
     // re-join to remove white spaces<
     action = actions.join(",");
@@ -458,6 +460,22 @@ export class DefaultActionExecutor implements ActionExecutor {
 
     if (data.new) {
       await this.#handler.edit(null);
+      if (data.pending) {
+        await this.#execute(data.pending, options);
+      }
+      return;
+    }
+
+    if (data.back) {
+      await this.#handler.back();
+      if (data.pending) {
+        await this.#execute(data.pending, options);
+      }
+      return;
+    }
+
+    if (data.delete) {
+      await this.#handler.borrar();
       if (data.pending) {
         await this.#execute(data.pending, options);
       }

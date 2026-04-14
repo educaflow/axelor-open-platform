@@ -373,6 +373,8 @@ export type ActionResult = {
   canClose?: boolean;
   save?: boolean;
   new?: boolean;
+  back?: boolean;
+  delete?: boolean;
   view?: ActionView;
   report?: boolean;
   reportLink?: string;
