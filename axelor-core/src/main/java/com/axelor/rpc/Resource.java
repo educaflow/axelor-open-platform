@@ -20,8 +20,6 @@ import com.axelor.common.StringUtils;
 import com.axelor.db.EntityHelper;
 import com.axelor.db.modelservice.ModelService;
 import com.axelor.db.modelservice.ModelServiceFactory;
-import com.axelor.db.modelservice.businessmessage.BusinessException;
-import com.axelor.db.modelservice.businessmessage.internal.BusinessMessageHelper;
 import com.axelor.db.JPA;
 import com.axelor.db.JpaRepository;
 import com.axelor.db.JpaSecurity;
@@ -1267,74 +1265,70 @@ public class Resource<T extends Model> {
     final Mapper mapper = Mapper.of(model);
 
     JPA.runInTransaction(
-        () -> {
-          for (Object record : records) {
+            () -> {
+              for (Object record : records) {
 
-            if (record == null) {
-              continue;
-            }
+                if (record == null) {
+                  continue;
+                }
 
-            record = modelService.validate((Map) record, request.getContext());
+                record = modelService.validate((Map) record, request.getContext());
 
-            final Long id = findId((Map) record);
-            final boolean isNew = (id == null || id <= 0L);
-            final JpaSecurity.AccessType accessType;
+                final Long id = findId((Map) record);
+                final boolean isNew = (id == null || id <= 0L);
+                final JpaSecurity.AccessType accessType;
 
-            // Check for permissions on main object
-            if (isNew) {
-              accessType = JpaSecurity.CAN_CREATE;
-              security.get().check(accessType, model);
-            } else {
-              accessType = JpaSecurity.CAN_WRITE;
-              security.get().check(accessType, model, id);
-            }
+                // Check for permissions on main object
+                if (isNew) {
+                  accessType = JpaSecurity.CAN_CREATE;
+                  security.get().check(accessType, model);
+                } else {
+                  accessType = JpaSecurity.CAN_WRITE;
+                  security.get().check(accessType, model, id);
+                }
 
-            // Check for permissions on relational fields
-            checkRelationalPermissions((Map<String, Object>) record, mapper);
+                // Check for permissions on relational fields
+                checkRelationalPermissions((Map<String, Object>) record, mapper);
 
-            Map<String, Object> orig = (Map) ((Map) record).get("_original");
-            JPA.verify(model, orig);
+                Map<String, Object> orig = (Map) ((Map) record).get("_original");
+                JPA.verify(model, orig);
 
-            Model originalModel = getOriginalModel(repository, id, isNew);
+                Model originalModel = getOriginalModel(repository, id, isNew);
 
-            Model bean = JPA.edit(model, (Map) record);
+                Model bean = JPA.edit(model, (Map) record);
 
-            // if user, update password
-            if (bean instanceof User user) {
-              changeUserPassword(user, (Map) record);
-            }
+                // if user, update password
+                if (bean instanceof User user) {
+                  changeUserPassword(user, (Map) record);
+                }
 
-            Map<String,Object> mapBusinessExceptions=new HashMap<>();
+                bean = JPA.manage(bean);
+                if (isNew) {
+                  bean = modelService.insert((T) bean);
+                } else {
+                  bean = modelService.update((T) bean, (T) originalModel);
+                }
 
-            bean = JPA.manage(bean);
-            try {
-              if (isNew) {
-                bean = modelService.insert((T) bean);
-              } else {
-                bean = modelService.update((T) bean, (T) originalModel);
+                // check permission rules again
+                security.get().check(accessType, model, bean.getId());
+
+                // if it's a translation object, invalidate cache
+                if (bean instanceof MetaTranslation) {
+                  I18nBundle.invalidate();
+                }
+
+                Map<String, Object> jsonMapResponse = repository.populate(toMap(bean, request), request.getContext());
+                data.add(jsonMapResponse);
               }
-            } catch (BusinessException businessException) {
-              mapBusinessExceptions=BusinessMessageHelper.getAsMap(businessException.getBusinessMessages());
-            }
+            });
 
-            // check permission rules again
-            security.get().check(accessType, model, bean.getId());
 
-            // if it's a translation object, invalidate cache
-            if (bean instanceof MetaTranslation) {
-              I18nBundle.invalidate();
-            }
-
-            Map<String, Object> jsonMapResponse = repository.populate(toMap(bean, request), request.getContext());
-            jsonMapResponse.putAll(mapBusinessExceptions);
-            data.add(jsonMapResponse);
-          }
-        });
 
     response.setData(data);
     response.setStatus(Response.STATUS_SUCCESS);
 
     firePostRequestEvent(RequestEvent.SAVE, request, response);
+
 
     return response;
   }
@@ -1444,19 +1438,12 @@ public class Resource<T extends Model> {
     final Map<String, Object> removedMapBean =
           JPA.callInTransaction(
               () -> {
-                Map<String,Object> mapBusinessExceptions=new HashMap<>();
                 Model bean = JPA.edit(model, data);
                 if (bean.getId() != null) {
-                  try {
-                    modelService.remove((T) bean);
-                  } catch (BusinessException businessException) {
-                    mapBusinessExceptions=BusinessMessageHelper.getAsMap(businessException.getBusinessMessages());
-                  }
+                  modelService.remove((T) bean);
                 }
 
                 Map<String, Object> innerRemovedMapBean=toMapCompact(bean);
-                innerRemovedMapBean.putAll(mapBusinessExceptions);
-
                 return innerRemovedMapBean;
               });
 
@@ -1504,14 +1491,8 @@ public class Resource<T extends Model> {
               entities.add(bean);
             }
 
-            int i=0;
             for (Model entity : entities) {
-              try {
                 modelService.remove((T) entity);
-              } catch (BusinessException businessException) {
-                ((Map)records.get(i)).putAll(BusinessMessageHelper.getAsMap(businessException.getBusinessMessages()));
-              }
-              i++;
             }
           });
 

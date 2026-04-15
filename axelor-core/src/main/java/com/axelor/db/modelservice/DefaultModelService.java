@@ -6,7 +6,6 @@ package com.axelor.db.modelservice;
 
 import com.axelor.db.Model;
 import com.axelor.db.Repository;
-import com.axelor.db.modelservice.businessmessage.BusinessException;
 
 import java.util.Map;
 
@@ -29,17 +28,17 @@ public class DefaultModelService<T extends Model> implements ModelService<T> {
   }
 
   @Override
-  public T insert(T entity) throws BusinessException {
+  public T insert(T entity) {
     return repository.save(entity);
   }
 
   @Override
-  public T update(T entity,T original) throws BusinessException {
+  public T update(T entity,T original) {
     return repository.save(entity);
   }
 
   @Override
-  public void remove(T entity) throws BusinessException {
+  public void remove(T entity) {
     repository.remove(entity);
   }
 

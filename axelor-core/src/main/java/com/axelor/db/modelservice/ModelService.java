@@ -5,8 +5,6 @@
 package com.axelor.db.modelservice;
 
 import com.axelor.db.Model;
-import com.axelor.db.modelservice.businessmessage.BusinessException;
-
 import java.util.Map;
 
 /**
@@ -27,7 +25,7 @@ public interface ModelService<T extends Model> {
    * @param entity la entidad a insertar
    * @return la entidad insertada
    */
-  T insert(T entity) throws BusinessException;
+  T insert(T entity);
 
   /**
    * Actualiza la entidad dada en la base de datos.
@@ -35,14 +33,14 @@ public interface ModelService<T extends Model> {
    * @param entity la entidad a actualizar
    * @return la entidad actualizada
    */
-  T update(T entity, T original) throws BusinessException;
+  T update(T entity, T original);
 
   /**
    * Remove the given entity.
    *
    * @param entity the entity to remove
    */
-  void remove(T entity) throws BusinessException;
+  void remove(T entity);
 
   /**
    * Validate the given json map before persisting.
