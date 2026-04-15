@@ -389,7 +389,7 @@ export class DefaultActionExecutor implements ActionExecutor {
     if (data.error) {
       await dialogs.box({
         size: "xl",
-        title: data.error.title ?? i18n.get("Error"),
+        title: data.error.title ?? i18n.get("Validation Error"),
         content: data.error.message,
         yesTitle: data.error.confirmBtnTitle,
         yesNo: false,
