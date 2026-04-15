@@ -169,12 +169,12 @@ export class DefaultActionExecutor implements ActionExecutor {
         const message =
           typeof e === "string" ? e : e instanceof Error ? e.message : null;
         if (message) {
-          dialogs.error({ content: message });
+          dialogs.error({ size: "xl", content: message });
         }
         return Promise.reject(e);
       }
-    }    
-    
+    }
+
     try {
       return enqueue
         ? await this.#enqueue(action, opts)
@@ -184,6 +184,7 @@ export class DefaultActionExecutor implements ActionExecutor {
         typeof e === "string" ? e : e instanceof Error ? e.message : null;
       if (message) {
         dialogs.error({
+          size: "xl",
           content: message,
         });
       }
@@ -211,10 +212,11 @@ export class DefaultActionExecutor implements ActionExecutor {
       return;
     }
 
-    // `new`, `close`, `back` and `delete` must be the last action
+    // `new`, `close`, `back`, `force-back` and `delete` must be the last action
     this.#ensureLast(actions, "new");
     this.#ensureLast(actions, "close");
     this.#ensureLast(actions, "back");
+    this.#ensureLast(actions, "force-back");
     this.#ensureLast(actions, "delete");
 
     // re-join to remove white spaces<
@@ -239,6 +241,10 @@ export class DefaultActionExecutor implements ActionExecutor {
 
     if (action === "back") {
       return this.#handler.back();
+    }
+
+    if (action === "force-back") {
+      return this.#handler.forceBack();
     }
 
     if (action === "delete") {
@@ -340,6 +346,10 @@ export class DefaultActionExecutor implements ActionExecutor {
     if (data.signal === "back") {
       return this.#handler.back();
     }
+
+    if (data.signal === "force-back") {
+      return this.#handler.forceBack();
+    }
     
 
     if (data.info) {
@@ -378,6 +388,7 @@ export class DefaultActionExecutor implements ActionExecutor {
 
     if (data.error) {
       await dialogs.box({
+        size: "xl",
         title: data.error.title ?? i18n.get("Error"),
         content: data.error.message,
         yesTitle: data.error.confirmBtnTitle,
@@ -468,6 +479,14 @@ export class DefaultActionExecutor implements ActionExecutor {
 
     if (data.back) {
       await this.#handler.back();
+      if (data.pending) {
+        await this.#execute(data.pending, options);
+      }
+      return;
+    }
+
+    if (data.forceBack) {
+      await this.#handler.forceBack();
       if (data.pending) {
         await this.#execute(data.pending, options);
       }

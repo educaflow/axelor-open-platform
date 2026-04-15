@@ -50,6 +50,10 @@ export class DefaultActionHandler implements ActionHandler {
     return Promise.resolve(undefined);
   }
 
+  forceBack(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
   borrar(): Promise<void> {
     return Promise.resolve(undefined);
   }

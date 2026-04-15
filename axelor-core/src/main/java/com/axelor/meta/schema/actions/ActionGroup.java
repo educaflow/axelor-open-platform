@@ -190,6 +190,7 @@ public class ActionGroup extends ActionResumable {
           || "validate".equals(name)
           || "close".equals(name)
           || "back".equals(name)
+          || "force-back".equals(name)
           || "delete".equals(name)
           || "new".equals(name)) {
         if (!element.test(handler)) {
@@ -300,6 +301,7 @@ public class ActionGroup extends ActionResumable {
             || last.containsKey("validate")
             || last.containsKey("close")
             || last.containsKey("back")
+            || last.containsKey("force-back")
             || last.containsKey("delete")
             || last.containsKey("new")) {
           String previous = (String) last.get("pending");

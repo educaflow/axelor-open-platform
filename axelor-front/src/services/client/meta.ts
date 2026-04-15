@@ -374,6 +374,7 @@ export type ActionResult = {
   save?: boolean;
   new?: boolean;
   back?: boolean;
+  forceBack?: boolean;
   delete?: boolean;
   view?: ActionView;
   report?: boolean;
