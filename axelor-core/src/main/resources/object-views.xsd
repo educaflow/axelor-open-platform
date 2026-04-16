@@ -1897,6 +1897,11 @@
             <xsd:documentation>Specify the row selection control</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="show-footer" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>Ocultar el pie de la ventana modal que muestra el panel related</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="widget" type="xsd:string" />
         <xsd:attribute name="showTitle" use="prohibited" />
         <xsd:attributeGroup ref="tns:RelationalAttributes" />

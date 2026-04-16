@@ -96,6 +96,9 @@ public class PanelRelated extends AbstractPanel {
   @XmlAttribute(name = "edit-window")
   private String editWindow;
 
+  @XmlAttribute(name = "showFooter")
+  private Boolean showFooter;
+
   @XmlAttribute private String widget;
 
   @XmlElements({
@@ -343,6 +346,14 @@ public class PanelRelated extends AbstractPanel {
 
   public void setEditWindow(String editWindow) {
     this.editWindow = editWindow;
+  }
+
+  public Boolean getShowFooter() {
+    return showFooter;
+  }
+
+  public void setShowFooter(Boolean showFooter) {
+    this.showFooter = showFooter;
   }
 
   public String getWidget() {

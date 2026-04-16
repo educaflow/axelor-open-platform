@@ -36,6 +36,7 @@ export type EditorOptions = {
   context?: DataContext;
   canAttach?: boolean;
   canSave?: boolean;
+  showFooter?: boolean;
   params?: ActionView["params"];
   header?: PopupProps["header"];
   footer?: PopupProps["footer"];
@@ -109,6 +110,7 @@ export function useEditor() {
       maximize,
       canAttach = true,
       canSave = true,
+      showFooter = true,
       params,
       header,
       footer,
@@ -144,6 +146,7 @@ export function useEditor() {
       tab,
       open: true,
       maximize,
+      showFooter,
       onClose: (result, record) => onClose?.(result, record),
       header,
       footer: ({ close }) => (

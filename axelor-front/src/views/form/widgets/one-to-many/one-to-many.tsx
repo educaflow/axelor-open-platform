@@ -1217,6 +1217,7 @@ function OneToManyInner({
         record: { id: null },
         readonly: false,
         maximize: isPopupMaximized(schema, "editor"),
+        showFooter: schema.showFooter !== false,
         viewName: formView,
         canSave: viewData?.view?.canSave,
         context: {
