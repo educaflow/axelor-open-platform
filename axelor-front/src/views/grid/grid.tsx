@@ -989,7 +989,7 @@ function GridInner(props: ViewProps<GridView>) {
   const showCheckbox = popupOptions?.multiSelect !== false;
 
   const searchProps: any = {
-    allowSearch: true,
+    allowSearch: view.allowSearchFields !== false,
     searchRowRenderer: Box,
     searchColumnRenderer: searchColumnRenderer,
   };

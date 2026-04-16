@@ -564,6 +564,7 @@ export interface GridView extends View {
   rowHeight?: number;
   colWidth?: number;
   noFetch?: boolean;
+  allowSearchFields?: boolean;
   selector?: SelectorType;
   inlineHelp?: Help;
   toolbar?: Button[];

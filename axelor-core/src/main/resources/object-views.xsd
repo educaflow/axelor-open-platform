@@ -1667,6 +1667,11 @@
             <xsd:documentation>Specify a custom title for the 'New' button. When set, the button icon is hidden and the title text is shown instead.</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="allowSearchFields" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Si se muestran los campos de buscar que bajo la fila de los títulos de las columnas.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="canNew" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>Specify whether to show the 'New' button.</xsd:documentation>

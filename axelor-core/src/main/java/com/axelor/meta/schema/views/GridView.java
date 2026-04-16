@@ -82,6 +82,9 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
   @XmlAttribute(name = "x-no-fetch")
   private Boolean noFetch;
 
+  @XmlAttribute(name = "allowSearchFields")
+  private Boolean allowSearchFields;
+
   @XmlAttribute(name = "x-selector")
   private String selector;
 
@@ -320,6 +323,14 @@ public class GridView extends AbstractView implements ContainerView, ExtendableV
 
   public void setNoFetch(Boolean noFetch) {
     this.noFetch = noFetch;
+  }
+
+  public Boolean getAllowSearchFields() {
+    return allowSearchFields;
+  }
+
+  public void setAllowSearchFields(Boolean allowSearchFields) {
+    this.allowSearchFields = allowSearchFields;
   }
 
   public String getSelector() {
