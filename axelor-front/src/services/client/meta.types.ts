@@ -382,6 +382,8 @@ export interface PanelRelated extends Omit<Panel, "type"> {
   canEdit?: string;
   canRemove?: string;
   canMove?: boolean;
+  forceEdit?: boolean;
+  newButtonTitle?: string;
   editWindow?: string;
   items?: (Field | Button)[];
   fields?: Property[];

@@ -1204,6 +1204,7 @@ function OneToManyInner({
       onSelect?: (record: DataRecord) => void,
       onSave?: (record: DataRecord) => void,
     ) => {
+      if (schema.forceEdit) options = { ...options, readonly: false };
       const { record } = options || {};
       const { id } = record ?? {};
       if (showEditorInTab && (id ?? 0) > 0) {
@@ -2057,10 +2058,12 @@ function OneToManyInner({
       },
       {
         key: "new",
-        text: i18n.get("New"),
-        iconProps: {
-          icon: "add",
-        },
+        text: schema.newButtonTitle
+          ? i18n.get(schema.newButtonTitle)
+          : i18n.get("New"),
+        ...(schema.newButtonTitle
+          ? { iconOnly: false }
+          : { iconProps: { icon: "add" } }),
         onClick: editable ? onAddInGrid : onAdd,
         hidden: !canNew || Boolean(showSubTreeTitleIfEmpty),
         render: (commandProps) => {

@@ -99,6 +99,12 @@ public class PanelRelated extends AbstractPanel {
   @XmlAttribute(name = "showFooter")
   private Boolean showFooter;
 
+  @XmlAttribute(name = "newButtonTitle")
+  private String newButtonTitle;
+
+  @XmlAttribute(name = "forceEdit")
+  private Boolean forceEdit;
+
   @XmlAttribute private String widget;
 
   @XmlElements({
@@ -354,6 +360,22 @@ public class PanelRelated extends AbstractPanel {
 
   public void setShowFooter(Boolean showFooter) {
     this.showFooter = showFooter;
+  }
+
+  public String getNewButtonTitle() {
+    return newButtonTitle;
+  }
+
+  public void setNewButtonTitle(String newButtonTitle) {
+    this.newButtonTitle = newButtonTitle;
+  }
+
+  public Boolean getForceEdit() {
+    return forceEdit;
+  }
+
+  public void setForceEdit(Boolean forceEdit) {
+    this.forceEdit = forceEdit;
   }
 
   public String getWidget() {

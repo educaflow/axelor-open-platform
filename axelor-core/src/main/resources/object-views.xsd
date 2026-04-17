@@ -1902,6 +1902,16 @@
             <xsd:documentation>Ocultar el pie de la ventana modal que muestra el panel related</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="newButtonTitle" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>Custom title for the 'New' button. When set, the button icon is hidden and the title text is shown instead.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="forceEdit" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>When true, the popup editor always opens in edit mode.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="widget" type="xsd:string" />
         <xsd:attribute name="showTitle" use="prohibited" />
         <xsd:attributeGroup ref="tns:RelationalAttributes" />
