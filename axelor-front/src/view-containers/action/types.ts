@@ -74,6 +74,7 @@ export interface ActionHandler {
   back(): Promise<void>;
   forceBack(): Promise<void>;
   borrar(): Promise<void>;
+  deleteModal(): Promise<void>;
   refresh(target?: string): Promise<void>;
 
   close(): Promise<void>;

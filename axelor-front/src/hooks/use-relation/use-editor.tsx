@@ -21,7 +21,7 @@ import { useAfterActions, useFormScope } from "@/views/form/builder/scope";
 
 import { initTab } from "../use-tabs";
 import { useSingleClickHandler } from "../use-button";
-import {ActionExecutor} from "@/view-containers/action";
+import {ActionExecutor, DefaultActionHandler} from "@/view-containers/action";
 import {processContextValues} from "@/views/form/builder/utils.ts";
 
 export type EditorOptions = {
@@ -43,6 +43,7 @@ export type EditorOptions = {
   onClose?: (result: boolean, record?: DataRecord) => void;
   onSave?: (record: DataRecord) => Promise<DataRecord> | void;
   onSelect?: (record: DataRecord) => void;
+  onDeleteModal?: (record: DataRecord) => Promise<boolean>;
 };
 
 export function useEditorInTab(schema: Schema) {
@@ -117,6 +118,7 @@ export function useEditor() {
       onClose,
       onSave,
       onSelect,
+      onDeleteModal,
     } = options;
 
     const tabParams = {
@@ -160,9 +162,45 @@ export function useEditor() {
           onSelect={onSelect}
         />
       ),
+      handler: onDeleteModal
+        ? () => <DeleteModalHandler onDeleteModal={onDeleteModal} />
+        : undefined,
       buttons: [],
     });
   }, []);
+}
+
+function DeleteModalHandler({
+  onDeleteModal,
+}: {
+  onDeleteModal: (record: DataRecord) => Promise<boolean>;
+}) {
+  const handlerAtom = usePopupHandlerAtom();
+  const handler = useAtomValue(handlerAtom);
+
+  const onDeleteModalRef = useRef(onDeleteModal);
+  onDeleteModalRef.current = onDeleteModal;
+
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
+  useEffect(() => {
+    const { actionHandler } = handler;
+    if (!actionHandler) return;
+    (actionHandler as DefaultActionHandler).setDeleteModalHandler(async () => {
+      const { getState, close } = handlerRef.current;
+      const record = getState?.()?.record;
+      if (!record) {
+        return;
+      }
+      const deleted = await onDeleteModalRef.current(record);
+      if (deleted) {
+        close?.(false);
+      }
+    });
+  }, [handler.actionHandler]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
 }
 
 async function callActionValidateRow(record: DataRecord,action:string,signal:string, actionExecutor: ActionExecutor) {

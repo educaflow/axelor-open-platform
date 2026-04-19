@@ -192,6 +192,7 @@ public class ActionGroup extends ActionResumable {
           || "back".equals(name)
           || "force-back".equals(name)
           || "delete".equals(name)
+          || "delete-modal".equals(name)
           || "new".equals(name)) {
         if (!element.test(handler)) {
           log.debug("action '{}' doesn't meet the condition: {}", name, element.getCondition());

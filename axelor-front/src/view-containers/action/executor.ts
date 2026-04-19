@@ -250,6 +250,10 @@ export class DefaultActionExecutor implements ActionExecutor {
       return this.#handler.borrar();
     }
 
+    if (action === "delete-modal") {
+      return this.#handler.deleteModal();
+    }
+
     const context = this.#handler.getContext();
     const model = context._model ?? options?.context?._model ?? "";
     const data = {
@@ -494,6 +498,14 @@ export class DefaultActionExecutor implements ActionExecutor {
 
     if (data.delete) {
       await this.#handler.borrar();
+      if (data.pending) {
+        await this.#execute(data.pending, options);
+      }
+      return;
+    }
+
+    if (data["delete-modal"]) {
+      await this.#handler.deleteModal();
       if (data.pending) {
         await this.#execute(data.pending, options);
       }

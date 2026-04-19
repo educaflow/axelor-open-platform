@@ -57,5 +57,10 @@ export class DefaultActionHandler implements ActionHandler {
   borrar(): Promise<void> {
     return Promise.resolve(undefined);
   }
-  
+
+  deleteModal(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  setDeleteModalHandler(_handler: () => Promise<void>): void {}
 }

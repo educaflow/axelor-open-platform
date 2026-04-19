@@ -1415,28 +1415,6 @@ function OneToManyInner({
 
   const isPermitted = usePermitted(model, perms);
 
-  const onEdit = useCallback(
-    async (record: DataRecord, readonly = false) => {
-      if (!(await isPermitted(record, readonly))) {
-        return;
-      }
-      openEditor(
-        { record, readonly },
-        (updated) =>
-          handleSelect([{ ...record, ...updated }], { change: true }),
-        (updated) => onSave({ ...record, ...updated }),
-      );
-    },
-    [isPermitted, openEditor, onSave, handleSelect],
-  );
-
-  const onView = useCallback(
-    (record: DataRecord) => {
-      onEdit(record, true);
-    },
-    [onEdit],
-  );
-
   const onDelete = useCallback(
     async (records: GridRow["record"][]) => {
       const confirmed = await dialogs.confirm({
@@ -1460,9 +1438,39 @@ function OneToManyInner({
           reorderItems((value || []).filter(({ id }) => !ids.includes(id))),
         );
         clearSelection();
+        return true;
       }
+      return false;
     },
     [onDeleteAction, setValue, clearSelection, reorderItems, actionExecutor],
+  );
+
+  const onEdit = useCallback(
+    async (record: DataRecord, readonly = false) => {
+      if (!(await isPermitted(record, readonly))) {
+        return;
+      }
+      openEditor(
+        {
+          record,
+          readonly,
+          onDeleteModal: (modalRecord) => {
+            return onDelete([modalRecord]);
+          },
+        },
+        (updated) =>
+          handleSelect([{ ...record, ...updated }], { change: true }),
+        (updated) => onSave({ ...record, ...updated }),
+      );
+    },
+    [isPermitted, openEditor, onSave, handleSelect, onDelete],
+  );
+
+  const onView = useCallback(
+    (record: DataRecord) => {
+      onEdit(record, true);
+    },
+    [onEdit],
   );
 
   const updateViewDirty = useUpdateViewDirty(formAtom);

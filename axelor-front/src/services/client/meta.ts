@@ -376,6 +376,7 @@ export type ActionResult = {
   back?: boolean;
   forceBack?: boolean;
   delete?: boolean;
+  "delete-modal"?: boolean;
   view?: ActionView;
   report?: boolean;
   reportLink?: string;
