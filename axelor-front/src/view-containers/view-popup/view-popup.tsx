@@ -355,8 +355,8 @@ function ViewClosure({ params }: { params?: ActionView["params"] }) {
   }, [doClose, getHandlerState, popupCanConfirm]);
 
   useEffect(() => {
-    setHandler((popup) => ({ ...popup, close: handleClose }));
-  }, [handleClose, setHandler]);
+    setHandler((popup) => ({ ...popup, close: handleClose, directClose: doClose }));
+  }, [handleClose, doClose, setHandler]);
 
   useEffect(() => {
     return handler.actionHandler?.setCloseHandler(async () => {

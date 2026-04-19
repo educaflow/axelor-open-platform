@@ -31,6 +31,7 @@ export type PopupHandler = {
   dirtyAtom?: WritableAtom<boolean, [boolean], void>;
   attachmentItem?: CommandItemProps | null;
   close?: (result?: boolean) => void;
+  directClose?: (record?: DataRecord) => void;
 };
 
 export const PopupScope = createScope<PopupHandler>({});
@@ -53,6 +54,7 @@ export function useSetPopupHandlers() {
         // only restore popup actions, which is set by popup itself
         // so it can't be overriden by view set popupHandlers
         close: draft.close,
+        directClose: draft.directClose,
         ...handlers,
       }));
     },

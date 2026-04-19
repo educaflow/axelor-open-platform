@@ -162,12 +162,125 @@ export function useEditor() {
           onSelect={onSelect}
         />
       ),
-      handler: onDeleteModal
-        ? () => <DeleteModalHandler onDeleteModal={onDeleteModal} />
-        : undefined,
+      handler: () => (
+        <>
+          <SaveModalHandler onSave={onSave} onSelect={onSelect} params={tabParams} />
+          {onDeleteModal && <DeleteModalHandler onDeleteModal={onDeleteModal} />}
+        </>
+      ),
       buttons: [],
     });
   }, []);
+}
+
+function SaveModalHandler({
+  onSave,
+  onSelect,
+  params,
+}: {
+  onSave?: EditorOptions["onSave"];
+  onSelect?: EditorOptions["onSelect"];
+  params?: ActionView["params"];
+}) {
+  const handlerAtom = usePopupHandlerAtom();
+  const handler = useAtomValue(handlerAtom);
+
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
+  const popupRecord = params?.["_popup-record"];
+
+  useEffect(() => {
+    const { actionHandler } = handler;
+    if (!actionHandler) return;
+    (actionHandler as DefaultActionHandler).setSaveModalHandler(async () => {
+      const {
+        commitForm,
+        getState,
+        getErrors,
+        directClose,
+        onSave: handlerOnSave,
+        actionExecutor,
+      } = handlerRef.current;
+
+      await commitForm?.();
+      await actionExecutor?.waitFor();
+
+      const state = getState?.();
+      if (!state) {
+        directClose?.();
+        return;
+      }
+
+      let { original, record } = state;
+
+      try {
+        const errors = getErrors?.();
+        if (errors) {
+          showErrors(errors);
+          return;
+        }
+
+        if (actionExecutor && state.meta.view.onValidate) {
+          const signal = state.meta.view.validateSignal || "default";
+          await actionExecutor.execute(state.meta.view.onValidate, {
+            enqueue: false,
+            context: {
+              ...processContextValues(record),
+              selected: true,
+              _signal: signal,
+              _ids: undefined,
+              ...(record.$$id && {
+                id: record.$$id,
+                $$id: undefined,
+              }),
+            },
+          });
+          const responseRecord = getState?.()?.record;
+          if (
+            responseRecord &&
+            Array.isArray(responseRecord?.errorMensajes) &&
+            responseRecord.errorMensajes.length > 0
+          ) {
+            return;
+          }
+          record = getState?.()?.record ?? record;
+        }
+
+        const hasToMany = Boolean(onSaveRef.current);
+        const isNew = popupRecord && !popupRecord?.id;
+        const hasRecordChanged = !isEqual(original, record);
+        const dirty = state.dirty;
+        const canSave = dirty || isNew || (hasToMany && hasRecordChanged);
+
+        if (canSave) {
+          const onSaveCallback = onSaveRef.current;
+          if (onSaveCallback) {
+            await onSaveCallback({ ...record, _dirty: dirty });
+          } else if (onSelectRef.current && handlerOnSave) {
+            const rec = await handlerOnSave({
+              shouldSave: true,
+              callOnSave: true,
+              callOnRead: false,
+            });
+            onSelectRef.current(rec);
+            record = rec;
+          }
+        }
+
+        directClose?.(record);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }, [handler.actionHandler]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
 }
 
 function DeleteModalHandler({
@@ -205,7 +318,7 @@ function DeleteModalHandler({
 
 async function callActionValidateRow(record: DataRecord,action:string,signal:string, actionExecutor: ActionExecutor) {
   await actionExecutor.waitFor();
-  const res = await actionExecutor.execute(action, {
+  await actionExecutor.execute(action, {
     context: {
       ...processContextValues(record),
       selected: true,
@@ -218,7 +331,6 @@ async function callActionValidateRow(record: DataRecord,action:string,signal:str
     },
   });
 }
-
 
 function Footer({
   canAttach = true,

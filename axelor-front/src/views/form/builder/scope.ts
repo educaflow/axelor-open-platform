@@ -130,6 +130,7 @@ export class FormActionHandler extends DefaultActionHandler {
   #forceBackHandler?: AsyncHandler;
   #borrarHandler?: AsyncHandler;
   #deleteModalHandler?: AsyncHandler;
+  #saveModalHandler?: AsyncHandler;
 
   constructor(prepareContext: ContextCreator) {
     super();
@@ -164,6 +165,10 @@ export class FormActionHandler extends DefaultActionHandler {
 
   setDeleteModalHandler(handler: AsyncHandler) {
     this.#deleteModalHandler = handler;
+  }
+
+  setSaveModalHandler(handler: AsyncHandler) {
+    this.#saveModalHandler = handler;
   }
   
   getContext() {
@@ -241,6 +246,10 @@ export class FormActionHandler extends DefaultActionHandler {
 
   async deleteModal() {
     await this.#deleteModalHandler?.();
+  }
+
+  async saveModal() {
+    await this.#saveModalHandler?.();
   }
 
   async refresh() {

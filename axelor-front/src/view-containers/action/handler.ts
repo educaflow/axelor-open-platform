@@ -63,4 +63,10 @@ export class DefaultActionHandler implements ActionHandler {
   }
 
   setDeleteModalHandler(_handler: () => Promise<void>): void {}
+
+  saveModal(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  setSaveModalHandler(_handler: () => Promise<void>): void {}
 }
