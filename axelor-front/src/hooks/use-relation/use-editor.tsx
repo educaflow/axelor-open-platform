@@ -301,14 +301,14 @@ function DeleteModalHandler({
     const { actionHandler } = handler;
     if (!actionHandler) return;
     (actionHandler as DefaultActionHandler).setDeleteModalHandler(async () => {
-      const { getState, close } = handlerRef.current;
+      const { getState, directClose } = handlerRef.current;
       const record = getState?.()?.record;
       if (!record) {
         return;
       }
       const deleted = await onDeleteModalRef.current(record);
       if (deleted) {
-        close?.(false);
+        directClose?.();
       }
     });
   }, [handler.actionHandler]); // eslint-disable-line react-hooks/exhaustive-deps

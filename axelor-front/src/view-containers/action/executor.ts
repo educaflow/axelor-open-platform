@@ -212,11 +212,13 @@ export class DefaultActionExecutor implements ActionExecutor {
       return;
     }
 
-    // `new`, `close`, `back` and `force-back` must be the last action
+    // `new`, `close`, `back`, `force-back`, `delete` and `delete-modal` must be the last action
     this.#ensureLast(actions, "new");
     this.#ensureLast(actions, "close");
     this.#ensureLast(actions, "back");
     this.#ensureLast(actions, "force-back");
+    this.#ensureLast(actions, "delete");
+    this.#ensureLast(actions, "delete-modal");
 
     // re-join to remove white spaces<
     action = actions.join(",");
