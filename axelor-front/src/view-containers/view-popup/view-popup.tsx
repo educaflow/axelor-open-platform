@@ -360,11 +360,11 @@ function ViewClosure({ params }: { params?: ActionView["params"] }) {
 
   useEffect(() => {
     return handler.actionHandler?.setCloseHandler(async () => {
-      const { actionExecutor, getState } = handler;
+      const { actionExecutor } = handler;
       await actionExecutor?.wait();
-      doClose(getState?.()?.record);
+      handleClose();
     });
-  }, [doClose, handler]);
+  }, [handleClose, handler]);
 
   return null;
 }
