@@ -45,7 +45,7 @@ Key source tree under `axelor-front/src/`:
 Actions flow: XML button `onClick="action-name"` → `executor.ts` → Java (`ws/action`) → `executor.ts #handle()` → handler method.
 
 **Built-in actions** (intercepted client-side, never sent to the server):
-`save`, `validate`, `close`, `force-close`, `back`, `force-back`, `new`, `delete`, `delete-modal`, `save-modal`
+`save`, `validate`, `close`, `back`, `force-back`, `new`, `delete`, `delete-modal`, `save-modal`
 
 ### Adding a new built-in action
 
@@ -109,7 +109,6 @@ These actions are intercepted client-side (never reach Java), except when used i
 | `back` | Navigate back to previous view (grid). Asks user to confirm if form is dirty. |
 | `force-back` | Same as `back` but skips the dirty confirmation. |
 | `close` | Close the current popup. |
-| `force-close` | Same as `close` but skips the dirty confirmation. |
 | `delete` | Delete the current record (same mechanics as the toolbar delete button). |
 | `delete-modal` | Delete the record inside a `<panel-related>` popup and close it. Defined in `one-to-many.tsx`. |
 | `save-modal` | Save the record inside a `<panel-related>` popup and close it. Runs `onValidate` if defined. Defined in `use-editor.tsx`. |
