@@ -4,6 +4,7 @@
  */
 package com.axelor.db.modelservice;
 
+import com.axelor.db.JpaRepository;
 import com.axelor.db.Model;
 import com.axelor.db.Repository;
 import com.axelor.inject.Beans;
@@ -51,8 +52,7 @@ public class ModelServiceFactory {
    * @return el servicio resuelto, nunca null
    */
   @SuppressWarnings("unchecked")
-  public static <U extends Model> ModelService<U> resolve(
-      Class<U> modelClass, Repository<U> repository) {
+  public static <U extends Model> ModelService<U> resolve(Class<U> modelClass, Repository<U> repository) {
 
     final Injector injector = Beans.get(Injector.class);
     final String simpleName = modelClass.getSimpleName();
@@ -132,6 +132,11 @@ public class ModelServiceFactory {
     DefaultModelService<U> defaultService = new DefaultModelService<>(modelClass, repository);
     injector.injectMembers(defaultService);
     return defaultService;
+  }
+
+  public static <U extends Model> ModelService<U> resolve(Class<U> modelClass) {
+    final Repository repository = JpaRepository.of(modelClass);
+    return resolve(modelClass,repository);
   }
 
   /**
