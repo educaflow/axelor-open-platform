@@ -15,6 +15,8 @@ import com.axelor.meta.loader.ModuleManager;
 import com.axelor.meta.loader.ViewObserver;
 import com.axelor.meta.loader.ViewWatcherObserver;
 import com.axelor.meta.service.ViewProcessor;
+import com.axelor.db.modelservice.ModelServiceFactory;
+import com.axelor.db.modelservice.impl.ModelServiceFactoryImpl;
 import com.axelor.meta.theme.MetaThemeService;
 import com.axelor.meta.theme.MetaThemeServiceImpl;
 import com.axelor.report.ReportEngineProvider;
@@ -67,6 +69,7 @@ public class AppModule extends AbstractModule {
     bind(ViewWatcherObserver.class);
 
     bind(MetaThemeService.class).to(MetaThemeServiceImpl.class);
+    bind(ModelServiceFactory.class).to(ModelServiceFactoryImpl.class);
 
     final List<Class<? extends AxelorModule>> moduleClasses =
         ModuleManager.getResolution().stream()

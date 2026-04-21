@@ -116,6 +116,8 @@ public class Resource<T extends Model> {
   private final Event<PreRequest> preRequest;
   private final Event<PostRequest> postRequest;
 
+  @Inject private ModelServiceFactory modelServiceFactory;
+
   private static final Pattern NAME_PATTERN = Pattern.compile("[\\w\\.]+");
 
   private static JpaSecurity securityWarner;
@@ -1237,7 +1239,7 @@ public class Resource<T extends Model> {
 
     final Response response = new ActionResponse();
     final Repository repository = JpaRepository.of(model);
-    final ModelService<T> modelService = ModelServiceFactory.resolve(model, repository);
+    final ModelService<T> modelService = modelServiceFactory.resolve(model, repository);
 
     final List<Object> records;
 
@@ -1424,7 +1426,7 @@ public class Resource<T extends Model> {
     security.get().check(JpaSecurity.CAN_REMOVE, model, id);
     final Response response = new ActionResponse();
     final Repository repository = JpaRepository.of(model);
-    final ModelService<T> modelService = ModelServiceFactory.resolve(model, repository);
+    final ModelService<T> modelService = modelServiceFactory.resolve(model, repository);
     final Map<String, Object> data = new HashMap<>();
     final Map<String, Object> returnData;
 
@@ -1460,7 +1462,7 @@ public class Resource<T extends Model> {
 
     final Response response = new ActionResponse();
     final Repository repository = JpaRepository.of(model);
-    final ModelService<T> modelService = ModelServiceFactory.resolve(model, repository);
+    final ModelService<T> modelService = modelServiceFactory.resolve(model, repository);
     final List<Object> records = request.getRecords();
 
     if (records == null || records.isEmpty()) {
