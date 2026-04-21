@@ -374,7 +374,7 @@ export type ActionResult = {
   save?: boolean;
   new?: boolean;
   back?: boolean;
-  forceBack?: boolean;
+  "force-back"?: boolean;
   delete?: boolean;
   "delete-modal"?: boolean;
   "save-modal"?: boolean;

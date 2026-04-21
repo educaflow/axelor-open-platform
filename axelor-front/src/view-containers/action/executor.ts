@@ -494,7 +494,7 @@ export class DefaultActionExecutor implements ActionExecutor {
       return;
     }
 
-    if (data.forceBack) {
+    if (data["force-back"]) {
       await this.#handler.forceBack();
       if (data.pending) {
         await this.#execute(data.pending, options);
