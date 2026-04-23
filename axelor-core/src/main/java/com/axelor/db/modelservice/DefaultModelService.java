@@ -19,8 +19,8 @@ import java.util.Map;
  */
 public class DefaultModelService<T extends Model> implements ModelService<T> {
 
-  private Class<T> model;
-  private final Repository<T> repository;
+  protected Class<T> model;
+  protected final Repository<T> repository;
 
   public DefaultModelService(Class<T> model,Repository<T> repository) {
     this.model=model;
