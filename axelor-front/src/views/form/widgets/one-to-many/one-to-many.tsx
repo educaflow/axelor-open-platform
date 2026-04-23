@@ -325,6 +325,7 @@ function OneToManyInner({
     serverSelectedIds: number[] | null;
     syncServerSelectionPending: boolean;
     hasRefreshBeenCalled: boolean;
+    domainExcludedIds?: number[];
   }>({
     reorder: false,
     recordsSync: false,
@@ -501,8 +502,11 @@ function OneToManyInner({
               }
               const recIds = records.map((r) => r.id);
               const deleteIds = recIds.filter((id) => !valIds.includes(id));
+              const domainExcluded = refs.current.domainExcludedIds ?? [];
               const newRecords = (values || []).filter(
-                (v) => !recIds.includes(v.id),
+                (v) =>
+                  !recIds.includes(v.id) &&
+                  !(v.id != null && domainExcluded.includes(v.id)),
               );
 
               return records
@@ -849,7 +853,9 @@ function OneToManyInner({
         }
         const ids = items
           .filter(
-            (v) => (v.id ?? 0) > 0 && v.version === undefined && !v._fetched,
+            (v) =>
+              (v.id ?? 0) > 0 &&
+              (domain || (v.version === undefined && !v._fetched)),
           )
           .map((v) => v.id);
 
@@ -866,8 +872,11 @@ function OneToManyInner({
             filter: {
               ...options?.filter,
               _archived: true,
-              _domain: "self.id in (:_field_ids)",
+              _domain: domain
+                ? `(self.id in (:_field_ids)) AND (${domain})`
+                : "self.id in (:_field_ids)",
               _domainContext: {
+                ...(domain ? getContext() : {}),
                 _model: model,
                 _field: name,
                 _field_ids: ids as number[],
@@ -883,6 +892,10 @@ function OneToManyInner({
         }
 
         const fetchedIds = records.map((r) => r.id);
+        const domainExcludedIds = domain
+          ? (ids.filter((id) => !fetchedIds.includes(id)) as number[])
+          : [];
+        refs.current.domainExcludedIds = domainExcludedIds;
         const unfetchedItemList: DataRecord[] = [];
 
         const newItems = records.map((record) => {
@@ -892,6 +905,7 @@ function OneToManyInner({
 
         items.forEach((item, index) => {
           if (!fetchedIds.includes(item.id)) {
+            if (item.id != null && domainExcludedIds.includes(item.id)) return;
             newItems.splice(index, 0, item);
             unfetchedItemList.push(item);
           }
@@ -984,6 +998,8 @@ function OneToManyInner({
         setState,
         isCollectionTree,
         expandFieldList,
+        domain,
+        getContext,
       ],
     ),
   );
