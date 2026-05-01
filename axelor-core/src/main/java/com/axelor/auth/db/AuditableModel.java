@@ -32,13 +32,13 @@ public abstract class AuditableModel extends Model {
   @Widget(readonly = true, copyable = false, title = /*$$(*/ "Created by" /*)*/)
   @ManyToOne(
       fetch = FetchType.LAZY,
-      cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+      cascade = {CascadeType.MERGE})
   private User createdBy;
 
   @Widget(readonly = true, copyable = false, title = /*$$(*/ "Updated by" /*)*/)
   @ManyToOne(
       fetch = FetchType.LAZY,
-      cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+      cascade = {CascadeType.MERGE})
   private User updatedBy;
 
   public LocalDateTime getCreatedOn() {
