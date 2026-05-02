@@ -195,6 +195,10 @@ public abstract class Property {
 
   @Overridable @XmlAttribute private Boolean updatable;
 
+  @Overridable
+  @XmlAttribute(name = "cascade")
+  private String cascade;
+
   private static class LargeChecker implements BiConsumer<Object, Object> {
     @Override
     public void accept(Object a, Object b) {
@@ -475,6 +479,14 @@ public abstract class Property {
 
   public void setOrphanRemoval(Boolean value) {
     this.orphanRemoval = value;
+  }
+
+  public String getCascade() {
+    return cascade;
+  }
+
+  public void setCascade(String value) {
+    this.cascade = value;
   }
 
   public String getOrderBy() {
@@ -1153,6 +1165,41 @@ public abstract class Property {
     return res.hasParams() ? res : null;
   }
 
+  private static final List<String> DEFAULT_CASCADE =
+      List.of(
+          "jakarta.persistence.CascadeType.PERSIST", "jakarta.persistence.CascadeType.MERGE");
+
+  private List<String> resolveCascadeTypes(boolean defaultAll) {
+    if (cascade != null) {
+      String val = cascade.trim().toLowerCase();
+      if ("none".equals(val)) {
+        return List.of();
+      }
+      if ("all".equals(val)) {
+        return List.of("jakarta.persistence.CascadeType.ALL");
+      }
+      return Arrays.stream(val.split(","))
+          .map(String::trim)
+          .filter(s -> !s.isEmpty())
+          .map(String::toUpperCase)
+          .map(t -> "jakarta.persistence.CascadeType." + t)
+          .collect(Collectors.toList());
+    }
+    return defaultAll
+        ? List.of("jakarta.persistence.CascadeType.ALL")
+        : DEFAULT_CASCADE;
+  }
+
+  private void applyCascade(JavaAnnotation annotation, boolean orphan) {
+    List<String> types = resolveCascadeTypes(orphan && cascade == null);
+    if (types.isEmpty()) return;
+    if (types.size() == 1 && types.get(0).equals("jakarta.persistence.CascadeType.ALL")) {
+      annotation.param("cascade", "{0:m}", "jakarta.persistence.CascadeType.ALL");
+    } else {
+      annotation.param("cascade", types, t -> new JavaCode("{0:m}", t));
+    }
+  }
+
   private JavaAnnotation $one2one() {
     if (type != PropertyType.ONE_TO_ONE) return null;
 
@@ -1164,15 +1211,10 @@ public abstract class Property {
       annotation.param("mappedBy", "{0:s}", mappedBy);
     }
 
-    if (isTrue(getOrphanRemoval())) {
-      annotation.param("cascade", "{0:m}", "jakarta.persistence.CascadeType.ALL");
+    boolean orphan = isTrue(getOrphanRemoval());
+    applyCascade(annotation, orphan);
+    if (orphan) {
       annotation.param("orphanRemoval", "true");
-    } else {
-      annotation.param(
-          "cascade",
-          List.of(
-              "jakarta.persistence.CascadeType.PERSIST", "jakarta.persistence.CascadeType.MERGE"),
-          t -> new JavaCode("{0:m}", t));
     }
     return annotation;
   }
@@ -1180,13 +1222,11 @@ public abstract class Property {
   private JavaAnnotation $many2one() {
     if (type != PropertyType.MANY_TO_ONE) return null;
 
-    return new JavaAnnotation("jakarta.persistence.ManyToOne")
-        .param("fetch", "{0:m}", "jakarta.persistence.FetchType.LAZY")
-        .param(
-            "cascade",
-            List.of(
-                "jakarta.persistence.CascadeType.PERSIST", "jakarta.persistence.CascadeType.MERGE"),
-            t -> new JavaCode("{0:m}", t));
+    JavaAnnotation annotation =
+        new JavaAnnotation("jakarta.persistence.ManyToOne")
+            .param("fetch", "{0:m}", "jakarta.persistence.FetchType.LAZY");
+    applyCascade(annotation, false);
+    return annotation;
   }
 
   private JavaAnnotation $one2many() {
@@ -1200,15 +1240,10 @@ public abstract class Property {
       annotation.param("mappedBy", "{0:s}", mappedBy);
     }
 
-    if (isTrue(getOrphanRemoval())) {
-      annotation.param("cascade", "{0:m}", "jakarta.persistence.CascadeType.ALL");
+    boolean orphan = isTrue(getOrphanRemoval());
+    applyCascade(annotation, orphan);
+    if (orphan) {
       annotation.param("orphanRemoval", "true");
-    } else {
-      annotation.param(
-          "cascade",
-          List.of(
-              "jakarta.persistence.CascadeType.PERSIST", "jakarta.persistence.CascadeType.MERGE"),
-          t -> new JavaCode("{0:m}", t));
     }
 
     return annotation;
@@ -1225,10 +1260,7 @@ public abstract class Property {
       annotation.param("mappedBy", "{0:s}", mappedBy);
     }
 
-    annotation.param(
-        "cascade",
-        List.of("jakarta.persistence.CascadeType.PERSIST", "jakarta.persistence.CascadeType.MERGE"),
-        t -> new JavaCode("{0:m}", t));
+    applyCascade(annotation, false);
 
     return annotation;
   }

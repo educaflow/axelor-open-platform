@@ -377,6 +377,15 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="cascade" type="xsd:string">
+          <xsd:annotation>
+            <xsd:documentation>
+            Specify the cascade types for this relationship.
+            Accepted values: none, all, merge, persist, or comma-separated combinations (e.g. "merge,persist").
+            Default when not specified: merge,persist for all relation types (or all when orphanRemoval is true).
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
