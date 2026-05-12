@@ -18,6 +18,8 @@ import com.axelor.common.Inflector;
 import com.axelor.common.ObjectUtils;
 import com.axelor.common.StringUtils;
 import com.axelor.db.EntityHelper;
+import com.axelor.db.modelservice.BusinessMessage;
+import com.axelor.db.modelservice.BusinessMessages;
 import com.axelor.db.modelservice.ModelService;
 import com.axelor.db.modelservice.ModelServiceFactory;
 import com.axelor.db.JPA;
@@ -1306,8 +1308,10 @@ public class Resource<T extends Model> {
 
                 bean = JPA.manage(bean);
                 if (isNew) {
+                  throwIfInvalid(modelService.validateInsert((T) bean));
                   bean = modelService.insert((T) bean);
                 } else {
+                  throwIfInvalid(modelService.validateUpdate((T) bean, (T) originalModel));
                   bean = modelService.update((T) bean, (T) originalModel);
                 }
 
@@ -1442,6 +1446,7 @@ public class Resource<T extends Model> {
               () -> {
                 Model bean = JPA.edit(model, data);
                 if (bean.getId() != null) {
+                  throwIfInvalid(modelService.validateRemove((T) bean));
                   modelService.remove((T) bean);
                 }
 
@@ -1494,6 +1499,7 @@ public class Resource<T extends Model> {
             }
 
             for (Model entity : entities) {
+                throwIfInvalid(modelService.validateRemove((T) entity));
                 modelService.remove((T) entity);
             }
           });
@@ -1901,5 +1907,16 @@ public class Resource<T extends Model> {
     return originalModel;
   }
 
+  private static void throwIfInvalid(Optional<BusinessMessages> messagesOpt) {
+    messagesOpt.ifPresent(messages -> {
+      if (messages.isValid()) {
+        return;
+      }
+      String text = messages.stream()
+          .map(BusinessMessage::getMessage)
+          .collect(Collectors.joining("\n"));
+      throw new ValidationException(text);
+    });
+  }
 
 }
