@@ -6,6 +6,7 @@ package com.axelor.db.modelservice;
 
 import com.axelor.db.Model;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Service interface for entity persistence operations.
@@ -50,5 +51,11 @@ public interface ModelService<T extends Model> {
    * @return validated json map
    */
   Map<String, Object> validate(Map<String, Object> json, Map<String, Object> context);
+
+  public Optional<BusinessMessages> validateInsert(T entity);
+  public Optional<BusinessMessages> validateUpdate(T entity,T original);
+  public Optional<BusinessMessages> validateRemove(T entity);
+
+
 
 }
