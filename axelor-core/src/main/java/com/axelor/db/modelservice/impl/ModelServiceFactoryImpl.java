@@ -12,12 +12,17 @@ import com.axelor.db.modelservice.ModelService;
 import com.axelor.db.modelservice.ModelServiceFactory;
 import com.axelor.inject.Beans;
 import com.google.inject.Injector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ModelServiceFactoryImpl implements ModelServiceFactory {
+
+  private final Logger logger = LoggerFactory.getLogger(ModelServiceFactoryImpl.class);
 
   @Override
   @SuppressWarnings("unchecked")
@@ -69,13 +74,18 @@ public class ModelServiceFactoryImpl implements ModelServiceFactory {
     final List<Class<?>> found = new ArrayList<>();
     for (String className : candidates) {
       Class<?> serviceClass;
+
       try {
+        logger.info("resolve: probando clase candidata {}", className);
         serviceClass = Class.forName(className);
+        logger.info("\t\t\tEncontrada {}", className);
       } catch (ClassNotFoundException e) {
+        logger.info("\t\t\tNOO encontrada {}", className);
         continue;
       }
 
       if (serviceClass.isInterface()) {
+        logger.info("\t\t\tDescartada al ser un interface {}", className);
         continue;
       }
 
@@ -93,7 +103,7 @@ public class ModelServiceFactoryImpl implements ModelServiceFactory {
 
     if (found.size() == 1) {
       Class<?> serviceClass = found.get(0);
-
+      logger.info("Se usa la clase  {}", serviceClass.getName());
       if (!ModelService.class.isAssignableFrom(serviceClass)) {
         throw new IllegalStateException(
             "La clase "
@@ -124,11 +134,12 @@ public class ModelServiceFactoryImpl implements ModelServiceFactory {
 
       injector.injectMembers(service);
       return service;
+    } else {
+      logger.info("Se usa el servicio por defecto  {}", DefaultModelService.class.getName());
+      DefaultModelService<U> defaultService = new DefaultModelService<>(modelClass, repository);
+      injector.injectMembers(defaultService);
+      return defaultService;
     }
-
-    DefaultModelService<U> defaultService = new DefaultModelService<>(modelClass, repository);
-    injector.injectMembers(defaultService);
-    return defaultService;
   }
 
   @Override
