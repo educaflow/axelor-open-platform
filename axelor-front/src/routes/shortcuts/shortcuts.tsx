@@ -82,17 +82,7 @@ export function Shortcuts() {
       // No known conflicts
       keys: [altKey, i18n.get("PageDown.Key")],
       description: i18n.get("navigate to next page/record"),
-    },
-    {
-      // Mac: minimize application
-      keys: [ctrlKey, "M"],
-      description: i18n.get("focus left menu search box"),
-    },
-    {
-      // No known conflicts
-      keys: ["F9"],
-      description: i18n.get("toggle left menu"),
-    },
+    }
   ];
 
   return (

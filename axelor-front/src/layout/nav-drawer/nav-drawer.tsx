@@ -113,11 +113,6 @@ export function NavDrawer() {
   const [showSearch, setShowSearch] = useState(false);
 
   useShortcut({
-    key: "F9",
-    action: useCallback(() => setSidebar(!sidebar), [setSidebar, sidebar]),
-  });
-
-  useShortcut({
     key: "M",
     ctrlKey: true,
     action: useCallback(() => setShowSearch(!showSearch), [showSearch]),

@@ -1,8 +1,18 @@
 .header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   flex: 1;
+}
+
+:global([data-testid="search-trigger"]),
+:global([data-testid="search-panel"]) {
+  display: none !important;
+}
+
+:global([data-testid="btn-toggle-sidebar"]) {
+  display: none !important;
 }
 
 .toggle {
