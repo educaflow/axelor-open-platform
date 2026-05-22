@@ -3,6 +3,7 @@ package com.axelor.db.modelservice;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class BusinessMessages extends ArrayList<BusinessMessage> {
 
@@ -29,6 +30,13 @@ public class BusinessMessages extends ArrayList<BusinessMessage> {
         BusinessMessages businessMessages = new BusinessMessages();
         businessMessages.add(businessMessage);
         return businessMessages;
+    }
+
+    @Override
+    public String toString() {
+        return this.stream()
+                .map(BusinessMessage::toString)
+                .collect(Collectors.joining("\n"));
     }
 
 }

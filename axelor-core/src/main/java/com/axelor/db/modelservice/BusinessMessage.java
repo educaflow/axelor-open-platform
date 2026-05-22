@@ -47,4 +47,19 @@ public class BusinessMessage {
     public int hashCode() {
         return Objects.hash(fieldName, message, label);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        if (label != null) {
+            sb.append(label);
+        } else if (fieldName != null) {
+            sb.append(fieldName);
+        }
+        if (sb.length() > 0) {
+            sb.append(": ");
+        }
+        sb.append(message);
+        return sb.toString();
+    }
 }
