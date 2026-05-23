@@ -56,6 +56,8 @@ public interface ModelService<T extends Model> {
   public Optional<BusinessMessages> validateUpdate(T entity,T original);
   public Optional<BusinessMessages> validateRemove(T entity);
 
-
+  public AllowProperties allowPropertiesInsert();
+  public AllowProperties allowPropertiesUpdate();
+  public AllowProperties allowPropertiesRemove();
 
 }

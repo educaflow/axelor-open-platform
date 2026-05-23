@@ -4,11 +4,19 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import jakarta.validation.ValidationException;
 
 public class BusinessMessages extends ArrayList<BusinessMessage> {
 
     public boolean isValid() {
         return this.isEmpty();
+    }
+
+    public void throwIfInvalid() {
+        if (isValid()) {
+            return;
+        }
+        throw new ValidationException(toString());
     }
 
 

@@ -30,23 +30,41 @@ public class DefaultModelService<T extends Model> implements ModelService<T> {
 
   @Override
   public T insert(T entity) {
+    validateInsert(entity).ifPresent(BusinessMessages::throwIfInvalid);
     return repository.save(entity);
   }
 
   @Override
   public T update(T entity,T original) {
+    validateUpdate(entity, original).ifPresent(BusinessMessages::throwIfInvalid);
     return repository.save(entity);
   }
 
   @Override
   public void remove(T entity) {
+    validateRemove(entity).ifPresent(BusinessMessages::throwIfInvalid);
     repository.remove(entity);
   }
 
   @Override
   public Map<String, Object> validate(Map<String, Object> json, Map<String, Object> context) {
-    return repository.validate(json, context);
+    final Long id = findId((Map) json);
+    final boolean isNew = (id == null || id <= 0L);
+
+    AllowProperties allowProperties;
+
+    if (isNew) {
+      allowProperties=allowPropertiesInsert();
+    } else {
+      allowProperties=allowPropertiesUpdate();
+    }
+
+    Map<String, Object> filtered = AllowProperties.filter(json, allowProperties);
+
+    return repository.validate(filtered, context);
   }
+
+
 
 
   @Override
@@ -63,5 +81,35 @@ public class DefaultModelService<T extends Model> implements ModelService<T> {
   public Optional<BusinessMessages> validateRemove(T entity) {
     return Optional.empty();
   }
+
+  @Override
+  public AllowProperties allowPropertiesInsert() {
+    return AllowProperties.createAllowAllProperties();
+  }
+
+  @Override
+  public AllowProperties allowPropertiesUpdate() {
+    return AllowProperties.createAllowAllProperties();
+  }
+
+  @Override
+  public AllowProperties allowPropertiesRemove() {
+    return AllowProperties.createAllowAllProperties();
+  }
+
+  /**
+   * Esta función es copia de la que hay en Resource
+   * Se ha copiado porque debe hacer exactamente lo mismo
+   * @param values
+   * @return
+   */
+  private Long findId(Map<String, Object> values) {
+    try {
+      return Long.parseLong(values.get("id").toString());
+    } catch (Exception e) {
+    }
+    return null;
+  }
+
 
 }
