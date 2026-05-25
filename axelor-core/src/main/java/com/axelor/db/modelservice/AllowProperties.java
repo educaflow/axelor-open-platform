@@ -20,6 +20,10 @@ public class AllowProperties {
         return new AllowProperties(allowProperties);
     }
 
+    public static AllowProperties createDenyAllProperties() {
+        return new AllowProperties(new HashMap<>());
+    }
+
     public static AllowProperties createAllowAllProperties() {
         Map<String, Object> allowAllProperties = new HashMap<>();
         allowAllProperties.put("*", null);
