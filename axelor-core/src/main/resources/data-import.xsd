@@ -52,15 +52,15 @@
           </annotation>
         </element>
       </sequence>
+      <attribute name="priority" type="int" default="0">
+        <annotation>
+          <documentation>
+            Prioridad para cargar cada fichero a importar. Si tienen la misma prioridad, no se garantiza el orden de carga.
+            La mayor valor, se carga primero.
+          </documentation>
+        </annotation>
+      </attribute>
     </complexType>
-    <attribute name="priority" type="int" default="0">
-      <annotation>
-        <documentation>
-          Prioridad para cargar cada fichero a importar. Si tienen la misma prioridad, no se garantiza el orden de carga.
-          La mayor valor, se carga primero.
-        </documentation>
-      </annotation>
-    </attribute>
   </element>
 
   <complexType name="Adapter">
