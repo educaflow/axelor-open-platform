@@ -18,11 +18,23 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 public class ModelServiceFactoryImpl implements ModelServiceFactory {
 
   private final Logger logger = LoggerFactory.getLogger(ModelServiceFactoryImpl.class);
+
+  /**
+   * Caché de la resolución de clase de servicio por entidad. Se cachea el constructor (o
+   * {@code Optional.empty()} cuando la entidad no tiene servicio propio y se usa {@link
+   * DefaultModelService}); la instancia NO se cachea porque recibe el {@code repository} por
+   * parámetro y pasa por {@code injectMembers} en cada resolución.
+   */
+  private static final ConcurrentMap<Class<?>, Optional<Constructor<?>>> CONSTRUCTOR_CACHE =
+      new ConcurrentHashMap<>();
 
   @Override
   @SuppressWarnings("unchecked")
@@ -61,6 +73,43 @@ public class ModelServiceFactoryImpl implements ModelServiceFactory {
   public <U extends Model> ModelService<U> resolve(Class<U> modelClass, Repository<U> repository) {
 
     final Injector injector = Beans.get(Injector.class);
+
+    // computeIfAbsent es atómico; si findServiceConstructor lanza IllegalStateException
+    // (misconfiguración), la caché no se puebla y el error se repite en cada llamada.
+    final Optional<Constructor<?>> cachedConstructor = CONSTRUCTOR_CACHE.computeIfAbsent(modelClass, this::findServiceConstructor);
+
+    if (cachedConstructor.isEmpty()) {
+      DefaultModelService<U> defaultService = new DefaultModelService<>(modelClass, repository);
+      injector.injectMembers(defaultService);
+      return defaultService;
+    }
+
+    final Constructor<?> constructor = cachedConstructor.get();
+    ModelService<U> service;
+    try {
+      service = (ModelService<U>) constructor.newInstance(modelClass, repository);
+    } catch (Exception e) {
+      throw new IllegalStateException("Error al instanciar " + constructor.getDeclaringClass().getName(), e);
+    }
+
+    injector.injectMembers(service);
+    return service;
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public <U extends Model> ModelService<U> resolve(Class<U> modelClass) {
+    final Repository repository = JpaRepository.of(modelClass);
+    return resolve(modelClass, repository);
+  }
+
+  /**
+   * Busca la clase de servicio de la entidad entre los 4 FQN candidatos y devuelve su constructor
+   * {@code (Class, Repository)}, u {@code Optional.empty()} si la entidad no tiene servicio propio
+   * (ruta {@link DefaultModelService}). Se ejecuta una sola vez por entidad (ver caché).
+   */
+  private Optional<Constructor<?>> findServiceConstructor(Class<?> modelClass) {
+
     final String simpleName = modelClass.getSimpleName();
     final String basePackage = computeBasePackage(modelClass.getPackageName());
 
@@ -76,16 +125,16 @@ public class ModelServiceFactoryImpl implements ModelServiceFactory {
       Class<?> serviceClass;
 
       try {
-        logger.info("resolve: probando clase candidata {}", className);
+        logger.debug("resolve: probando clase candidata {}", className);
         serviceClass = Class.forName(className);
-        logger.info("\t\t\tEncontrada {}", className);
+        logger.debug("\t\t\tEncontrada {}", className);
       } catch (ClassNotFoundException e) {
-        logger.info("\t\t\tNOO encontrada {}", className);
+        logger.debug("\t\t\tNOO encontrada {}", className);
         continue;
       }
 
       if (serviceClass.isInterface()) {
-        logger.info("\t\t\tDescartada al ser un interface {}", className);
+        logger.debug("\t\t\tDescartada al ser un interface {}", className);
         continue;
       }
 
@@ -94,59 +143,25 @@ public class ModelServiceFactoryImpl implements ModelServiceFactory {
 
     if (found.size() > 1) {
       String classes = found.stream().map(Class::getName).collect(Collectors.joining(", "));
-      throw new IllegalStateException(
-          "Se ha encontrado más de un ModelService para "
-              + modelClass.getName()
-              + ": "
-              + classes);
+      throw new IllegalStateException("Se ha encontrado más de un ModelService para " + modelClass.getName() + ": " + classes);
     }
 
-    if (found.size() == 1) {
-      Class<?> serviceClass = found.get(0);
-      logger.info("Se usa la clase  {}", serviceClass.getName());
-      if (!ModelService.class.isAssignableFrom(serviceClass)) {
-        throw new IllegalStateException(
-            "La clase "
-                + serviceClass.getName()
-                + " no implementa ModelService<"
-                + simpleName
-                + ">");
-      }
-
-      ModelService<U> service;
-      try {
-        Constructor<?> constructor = serviceClass.getConstructor(Class.class, Repository.class);
-        service = (ModelService<U>) constructor.newInstance(modelClass, repository);
-      } catch (NoSuchMethodException e) {
-        throw new IllegalStateException(
-            "La clase "
-                + serviceClass.getName()
-                + " debe declarar un constructor "
-                + serviceClass.getSimpleName()
-                + "(Class<"
-                + simpleName
-                + ">, Repository<"
-                + simpleName
-                + ">)");
-      } catch (Exception e) {
-        throw new IllegalStateException("Error al instanciar " + serviceClass.getName(), e);
-      }
-
-      injector.injectMembers(service);
-      return service;
-    } else {
-      logger.info("Se usa el servicio por defecto  {}", DefaultModelService.class.getName());
-      DefaultModelService<U> defaultService = new DefaultModelService<>(modelClass, repository);
-      injector.injectMembers(defaultService);
-      return defaultService;
+    if (found.isEmpty()) {
+      logger.debug("Se usa el servicio por defecto  {}", DefaultModelService.class.getName());
+      return Optional.empty();
     }
-  }
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public <U extends Model> ModelService<U> resolve(Class<U> modelClass) {
-    final Repository repository = JpaRepository.of(modelClass);
-    return resolve(modelClass, repository);
+    Class<?> serviceClass = found.get(0);
+    logger.debug("Se usa la clase  {}", serviceClass.getName());
+    if (!ModelService.class.isAssignableFrom(serviceClass)) {
+      throw new IllegalStateException("La clase " + serviceClass.getName() + " no implementa ModelService<" + simpleName + ">");
+    }
+
+    try {
+      return Optional.of(serviceClass.getConstructor(Class.class, Repository.class));
+    } catch (NoSuchMethodException e) {
+      throw new IllegalStateException("La clase " + serviceClass.getName() + " debe declarar un constructor " + serviceClass.getSimpleName() + "(Class<" + simpleName + ">, Repository<" + simpleName + ">)");
+    }
   }
 
   private static String computeBasePackage(String packageName) {
