@@ -20,6 +20,7 @@ import com.axelor.common.StringUtils;
 import com.axelor.db.EntityHelper;
 import com.axelor.db.modelservice.ModelService;
 import com.axelor.db.modelservice.ModelServiceFactory;
+import com.axelor.db.modelservice.ModelServiceValidationWalker;
 import com.axelor.db.JPA;
 import com.axelor.db.JpaRepository;
 import com.axelor.db.JpaSecurity;
@@ -117,6 +118,8 @@ public class Resource<T extends Model> {
   private final Event<PostRequest> postRequest;
 
   @Inject private ModelServiceFactory modelServiceFactory;
+
+  @Inject private ModelServiceValidationWalker modelServiceValidationWalker;
 
   private static final Pattern NAME_PATTERN = Pattern.compile("[\\w\\.]+");
 
@@ -1295,7 +1298,7 @@ public class Resource<T extends Model> {
                 Map<String, Object> orig = (Map) ((Map) record).get("_original");
                 JPA.verify(model, orig);
 
-                Model originalModel = getOriginalModel(repository, id, isNew);
+                Model originalModel = getOriginalModel(repository, id, isNew, (Map) record);
 
                 Model bean = JPA.edit(model, (Map) record);
 
@@ -1303,6 +1306,11 @@ public class Resource<T extends Model> {
                 if (bean instanceof User user) {
                   changeUserPassword(user, (Map) record);
                 }
+
+                // Valida los detalles del árbol (colecciones one-to-many de composición) con el
+                // ModelService de cada entidad hija. Debe ir antes de JPA.manage: los hijos nuevos
+                // aún conservan id == null (manage hace persist + auto-flush y les asigna id).
+                modelServiceValidationWalker.validateSaveTree(model, (Map) record, bean, originalModel);
 
                 bean = JPA.manage(bean);
                 if (isNew) {
@@ -1442,6 +1450,8 @@ public class Resource<T extends Model> {
               () -> {
                 Model bean = JPA.edit(model, data);
                 if (bean.getId() != null) {
+                  // Valida con validateRemove los detalles (recursivo) que caerán por cascada.
+                  modelServiceValidationWalker.validateRemoveTree(bean);
                   modelService.remove((T) bean);
                 }
 
@@ -1494,6 +1504,8 @@ public class Resource<T extends Model> {
             }
 
             for (Model entity : entities) {
+                // Valida con validateRemove los detalles (recursivo) que caerán por cascada.
+                modelServiceValidationWalker.validateRemoveTree(entity);
                 modelService.remove((T) entity);
             }
           });
@@ -1888,17 +1900,77 @@ public class Resource<T extends Model> {
     return map;
   }
 
-  private Model getOriginalModel(Repository repository, Long id, boolean isNew) {
+  private Model getOriginalModel(
+      Repository repository, Long id, boolean isNew, Map<String, Object> record) {
     Model originalModel = null;
     if (!isNew) {
       Optional<Model> optionalModel = repository.findById(id);
       if (optionalModel.isPresent()) {
         originalModel = optionalModel.get();
+        initializeCompositionCollections(originalModel, record, new HashSet<>());
         JPA.em().detach(originalModel);
       }
     }
 
     return originalModel;
+  }
+
+  /**
+   * Inicializa, antes del detach, las colecciones lazy de composición (one-to-many con
+   * orphanRemoval) del original cuyas claves están presentes en el JSON del request, de forma
+   * recursiva emparejando hijo original ↔ sub-JSON por id. Así el snapshot detached conserva los
+   * hijos originales, que {@code ModelServiceValidationWalker} necesita para clasificar hijos
+   * editados y borrados. El detach cascada a los hijos (cascade=ALL incluye DETACH).
+   *
+   * <p>Limitación: los many-to-one de los hijos del original quedan como proxies no inicializados
+   * tras el detach — la misma limitación que ya tiene hoy el original del maestro. Los
+   * validateUpdate de los detalles no deben navegar relaciones del ORIGINAL del hijo más allá del
+   * id.
+   */
+  @SuppressWarnings("unchecked")
+  private void initializeCompositionCollections(
+      Model bean, Map<String, Object> record, Set<Object> visited) {
+    if (bean == null || record == null || !visited.add(bean)) {
+      return;
+    }
+    final Mapper beanMapper = Mapper.of(EntityHelper.getEntityClass(bean));
+    for (Property property : beanMapper.getProperties()) {
+      if (property.getType() != PropertyType.ONE_TO_MANY || property.isOrphan()) {
+        continue;
+      }
+      if (!record.containsKey(property.getName())) {
+        continue;
+      }
+      final Object value = property.get(bean);
+      if (!(value instanceof Collection)) {
+        continue;
+      }
+      final Collection<?> children = (Collection<?>) value;
+      children.size(); // fuerza la inicialización de la colección lazy
+
+      final Object rawItems = record.get(property.getName());
+      if (!(rawItems instanceof Collection)) {
+        continue;
+      }
+      final Map<Long, Map<String, Object>> jsonById = new HashMap<>();
+      for (Object item : (Collection<?>) rawItems) {
+        if (item instanceof Map) {
+          Map<String, Object> childJson = (Map<String, Object>) item;
+          Long childId = findId(childJson);
+          if (childId != null && childId > 0) {
+            jsonById.put(childId, childJson);
+          }
+        }
+      }
+      for (Object childObject : children) {
+        if (childObject instanceof Model child && child.getId() != null) {
+          Map<String, Object> childJson = jsonById.get(child.getId());
+          if (childJson != null) {
+            initializeCompositionCollections(child, childJson, visited);
+          }
+        }
+      }
+    }
   }
 
 }
