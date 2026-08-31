@@ -2,19 +2,19 @@ package com.axelor.auth;
 
 public class EduFlowAuthResolverRegistry {
 
-    private static EduFlowAuthResolver resolver;
+    private static EducaFlowAuthResolver resolver;
 
     private EduFlowAuthResolverRegistry() {
     }
 
-    public static void register(EduFlowAuthResolver eduFlowAuthResolver) {
+    public static void register(EducaFlowAuthResolver educaFlowAuthResolver) {
         if (resolver != null) {
-            throw new IllegalStateException("EduFlowAuthResolver is already registered.");
+            throw new IllegalStateException("EducaFlowAuthResolver is already registered.");
         }
-        resolver = eduFlowAuthResolver;
+        resolver = educaFlowAuthResolver;
     }
 
-    public static EduFlowAuthResolver get() {
+    public static EducaFlowAuthResolver get() {
         return resolver;
     }
 }
