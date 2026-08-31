@@ -200,8 +200,8 @@ class AuthSecurity implements JpaSecurity, Provider<JpaSecurity> {
   private Set<Permission> resolvePermissions (User user, String object, AccessType type, Long... ids) {
     if (eduFlowAuthResolver != null) {
       return eduFlowAuthResolver
-              .resolve(user, object, type, ids).orElse(
-              authResolver.resolve(user, object, type));
+              .resolve(user, object, type, ids).orElseGet(
+              () -> authResolver.resolve(user, object, type));
     }
     return authResolver.resolve(user, object, type);
   }
