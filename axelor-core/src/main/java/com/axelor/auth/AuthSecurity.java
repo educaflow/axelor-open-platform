@@ -69,7 +69,7 @@ class AuthSecurity implements JpaSecurity, Provider<JpaSecurity> {
   }
 
   private AuthResolver authResolver = new AuthResolver();
-  private EducaFlowAuthResolver educaFlowAuthResolver = EduFlowAuthResolverRegistry.get();
+  private EducaFlowAuthResolver educaFlowAuthResolver = EducaFlowAuthResolverRegistry.get();
 
   private User getUser() {
     final User user = AuthUtils.getUser();

@@ -1,10 +1,10 @@
 package com.axelor.auth;
 
-public class EduFlowAuthResolverRegistry {
+public class EducaFlowAuthResolverRegistry {
 
     private static EducaFlowAuthResolver resolver;
 
-    private EduFlowAuthResolverRegistry() {
+    private EducaFlowAuthResolverRegistry() {
     }
 
     public static void register(EducaFlowAuthResolver educaFlowAuthResolver) {
