@@ -1293,6 +1293,7 @@ function GridInner(props: ViewProps<GridView>) {
                 ? i18n.get(view.newButtonTitle)
                 : i18n.get("New"),
               hidden: !canNew,
+              variant: "primary",
               ...(view.newButtonTitle
                 ? { iconOnly: false }
                 : { iconProps: { icon: "add" } }),

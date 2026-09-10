@@ -2085,6 +2085,7 @@ function OneToManyInner({
         text: schema.newButtonTitle
           ? i18n.get(schema.newButtonTitle)
           : i18n.get("New"),
+        variant: "primary",
         ...(schema.newButtonTitle
           ? { iconOnly: false }
           : { iconProps: { icon: "add" } }),
