@@ -177,7 +177,7 @@ Dashboard layout changed from drag-and-drop grid to responsive CSS grid (`auto-f
 
 ### Domain model XML extensions
 
-`extra-imports-model` and `extra-code-model` elements can be added inside a `<entity>` to inject raw Java code into the generated model class.
+`extra-imports-model` and `extra-code-model` elements can be added inside a `<entity>` or an `<enum>` (after its `<item>` elements) to inject raw Java code into the generated model class or enum.
 
 Domain XML files can now be placed in subdirectories under `src/main/resources/domains/` (or `src/main/java/`).
 

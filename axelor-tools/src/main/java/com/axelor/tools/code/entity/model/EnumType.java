@@ -7,6 +7,7 @@ package com.axelor.tools.code.entity.model;
 import static com.axelor.tools.code.entity.model.Utils.isTrue;
 import static com.axelor.tools.code.entity.model.Utils.notBlank;
 
+import com.axelor.common.StringUtils;
 import com.axelor.tools.code.JavaAnnotation;
 import com.axelor.tools.code.JavaField;
 import com.axelor.tools.code.JavaMethod;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +41,12 @@ public class EnumType implements BaseType<EnumType> {
 
   @XmlElement(name = "item")
   private List<EnumItem> items;
+
+  @XmlElement(name = "extra-code-model")
+  private String extraCodeModel;
+
+  @XmlElement(name = "extra-imports-model")
+  private String extraImportsModel;
 
   private static final Logger logger = LoggerFactory.getLogger(EnumType.class);
 
@@ -90,6 +99,24 @@ public class EnumType implements BaseType<EnumType> {
         merge(existing, item);
       }
     }
+
+    extraImportsModel =
+        Stream.of(extraImportsModel, other.extraImportsModel)
+            .filter(Utils::notBlank)
+            .collect(Collectors.joining("\n"));
+
+    extraCodeModel =
+        Stream.of(extraCodeModel, other.extraCodeModel)
+            .filter(Utils::notBlank)
+            .collect(Collectors.joining("\n"));
+  }
+
+  public String getExtraCodeModel() {
+    return extraCodeModel;
+  }
+
+  public String getExtraImportsModel() {
+    return extraImportsModel;
   }
 
   private void merge(EnumItem existing, EnumItem item) {
@@ -163,6 +190,14 @@ public class EnumType implements BaseType<EnumType> {
           new JavaMethod(name, null, Modifier.PRIVATE)
               .param("value", type)
               .code("this.value = {0:t}.requireNonNull(value);", "java.util.Objects"));
+    }
+
+    if (notBlank(extraImportsModel)) {
+      pojo.rawImports(extraImportsModel.split("\n"));
+    }
+
+    if (notBlank(extraCodeModel)) {
+      pojo.rawCode(StringUtils.stripIndent(extraCodeModel).trim());
     }
 
     return pojo;

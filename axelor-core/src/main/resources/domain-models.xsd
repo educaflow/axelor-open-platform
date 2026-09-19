@@ -1244,6 +1244,20 @@
     </xsd:annotation>
     <xsd:sequence>
       <xsd:element name="item" type="dm:EnumItem" minOccurs="1" maxOccurs="unbounded" />
+      <xsd:element name="extra-imports-model" minOccurs="0" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation>
+            Provide extra import statements en el enum.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="extra-code-model" minOccurs="0" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation>
+            Provide extra code en el enum.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="name" use="required">
       <xsd:annotation>
