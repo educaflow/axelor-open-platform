@@ -6,6 +6,8 @@ package com.axelor.db.modelservice;
 
 import com.axelor.db.Model;
 import com.axelor.db.Repository;
+import com.axelor.db.mapper.Mapper;
+import jakarta.persistence.EntityNotFoundException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -19,6 +21,9 @@ import java.util.Optional;
  * @param <T> the type of the entity
  */
 public class DefaultModelService<T extends Model> implements ModelService<T> {
+
+  /** El nombre del campo por el que busca {@link #getByCode(String)}. */
+  private static final String CAMPO_CODE = "code";
 
   protected Class<T> model;
   protected final Repository<T> repository;
@@ -95,6 +100,34 @@ public class DefaultModelService<T extends Model> implements ModelService<T> {
   @Override
   public AllowProperties allowPropertiesRemove() {
     return AllowProperties.createAllowAllProperties();
+  }
+
+  @Override
+  public T getById(Long id) {
+    if (id == null) {
+      throw new IllegalArgumentException("Se necesita un id para buscar un " + model.getName() + ", y ha llegado null.");
+    }
+
+    return repository.findById(id).orElseThrow(() -> new EntityNotFoundException("No existe ningún " + model.getName() + " con el id: " + id));
+  }
+
+  @Override
+  public T getByCode(String code) {
+    if (code == null || code.isBlank()) {
+      throw new IllegalArgumentException("Se necesita un código para buscar un " + model.getName() + ", y ha llegado vacío.");
+    }
+
+    if (Mapper.of(model).getProperty(CAMPO_CODE) == null) {
+      throw new IllegalStateException("La entidad " + model.getName() + " no tiene campo '" + CAMPO_CODE + "', así que no se puede buscar por código. getByCode solo vale para las entidades que lo declaran.");
+    }
+
+    T entity = repository.all().filter("self." + CAMPO_CODE + " = :" + CAMPO_CODE).bind(CAMPO_CODE, code).fetchOne();
+
+    if (entity == null) {
+      throw new EntityNotFoundException("No existe ningún " + model.getName() + " con el código: " + code);
+    }
+
+    return entity;
   }
 
   /**

@@ -5,6 +5,7 @@
 package com.axelor.db.modelservice;
 
 import com.axelor.db.Model;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -59,5 +60,34 @@ public interface ModelService<T extends Model> {
   public AllowProperties allowPropertiesInsert();
   public AllowProperties allowPropertiesUpdate();
   public AllowProperties allowPropertiesRemove();
+
+  /**
+   * Devuelve la entidad con el id dado.
+   *
+   * <p>Que no exista no es un caso normal: los ids salen de referencias que ya estaban en la base de
+   * datos o de la propia petición, así que no encontrarla significa que el dato está roto o
+   * manipulado, no algo que el usuario de la pantalla pueda corregir.
+   *
+   * @param id el id de la entidad
+   * @return la entidad, nunca {@code null}
+   * @throws IllegalArgumentException si {@code id} es {@code null}
+   * @throws EntityNotFoundException si no existe ninguna entidad con ese id
+   */
+  T getById(Long id);
+
+  /**
+   * Devuelve la entidad con el código dado. Solo vale para las entidades que declaran un campo
+   * {@code code}.
+   *
+   * <p>Que no exista no es un caso normal: el código lo pone quien programa la vista o la acción, no
+   * el usuario, así que no encontrarla es un error de programación.
+   *
+   * @param code el código de la entidad
+   * @return la entidad, nunca {@code null}
+   * @throws IllegalArgumentException si {@code code} es {@code null} o está en blanco
+   * @throws IllegalStateException si la entidad no declara el campo {@code code}
+   * @throws EntityNotFoundException si no existe ninguna entidad con ese código
+   */
+  T getByCode(String code);
 
 }
