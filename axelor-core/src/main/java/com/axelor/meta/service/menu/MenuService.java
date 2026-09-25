@@ -135,6 +135,7 @@ public class MenuService {
     item.setIcon(menu.getIcon());
     item.setIconBackground(menu.getIconBackground());
     item.setHasTag(menu.getTagCount() || StringUtils.notEmpty(menu.getTagGet()));
+    item.setTagCountHideAtZero(Boolean.TRUE.equals(menu.getTagCountHideAtZero()));
     item.setTagStyle(menu.getTagStyle());
     item.setLeft(menu.getLeft());
     item.setMobile(menu.getMobile());

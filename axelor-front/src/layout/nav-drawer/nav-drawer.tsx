@@ -32,17 +32,23 @@ function MenuTag({
   item,
   tag,
   hasTag,
+  hideAtZero,
   color = "default",
 }: {
   item: MenuItem;
   tag: string;
   hasTag?: boolean;
+  hideAtZero?: boolean;
   color?: string;
 }) {
+  // With tag-count-hide-at-zero, a dynamic tag of 0 is hidden, but kept in
+  // the DOM so that its data-tag-name is still refreshed.
+  const hidden = hideAtZero === true && hasTag && `${tag}` === "0";
   return (
     <Badge
       data-tag-name={hasTag ? item.name : undefined}
       bg={TagStyle[color] ?? TagStyle["default"]}
+      style={hidden ? { display: "none" } : undefined}
     >
       {`${tag}`.toUpperCase()}
     </Badge>
@@ -63,6 +69,7 @@ function load(res: MenuItem[], tags: Tag[]) {
       action,
       tag,
       hasTag,
+      tagCountHideAtZero,
       tagStyle: tagColor,
       icon,
       iconBackground,
@@ -96,6 +103,7 @@ function load(res: MenuItem[], tags: Tag[]) {
           tag={updatedTag?.value ?? tag}
           color={tagColor}
           hasTag={hasTag}
+          hideAtZero={tagCountHideAtZero}
         />
       );
     }

@@ -270,6 +270,7 @@
       <field name="tagStyle"/>
       <field name="tagGet"/>
       <field name="tagCount"/>
+      <field name="tagCountHideAtZero"/>
     </panel>
     <panel-related field="groups"/>
     <panel-related field="roles"/>

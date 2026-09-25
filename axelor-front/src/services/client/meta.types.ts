@@ -228,6 +228,7 @@ export interface MenuItem extends Widget {
   tag?: string;
   tagGet?: string;
   tagCount?: boolean;
+  tagCountHideAtZero?: boolean;
   tagStyle?: string;
   hasTag?: boolean;
 }

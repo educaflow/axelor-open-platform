@@ -42,6 +42,9 @@ public class MenuItem extends SimpleWidget {
   @XmlAttribute(name = "tag-count")
   private Boolean tagCount;
 
+  @XmlAttribute(name = "tag-count-hide-at-zero")
+  private Boolean tagCountHideAtZero;
+
   @XmlAttribute(name = "tag-style")
   private String tagStyle;
 
@@ -162,6 +165,14 @@ public class MenuItem extends SimpleWidget {
 
   public void setTagCount(Boolean tagCount) {
     this.tagCount = tagCount;
+  }
+
+  public Boolean getTagCountHideAtZero() {
+    return tagCountHideAtZero;
+  }
+
+  public void setTagCountHideAtZero(Boolean tagCountHideAtZero) {
+    this.tagCountHideAtZero = tagCountHideAtZero;
   }
 
   public String getTagStyle() {

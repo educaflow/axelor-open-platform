@@ -152,6 +152,13 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <xsd:attribute name="tag-count-hide-at-zero" type="xsd:boolean">
+          <xsd:annotation>
+            <xsd:documentation>
+              Specify whether to hide the tag when its value is 0. Defaults to false.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="tag-get" type="xsd:string">
           <xsd:annotation>
             <xsd:documentation>
