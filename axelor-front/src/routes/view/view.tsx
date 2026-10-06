@@ -105,6 +105,13 @@ export function View() {
       tabPathRef.current = tabPath;
       redirect(tabPath, {}, tabQueryString);
     } else if (tabs.items.length === 0) {
+      // Closing the last tab from an action (`close`) does not reset the URL
+      // (closing it with the X does): without this, the next menu click would
+      // reopen the already closed view from the stale URL.
+      //resumiendo: cerrar la última pestaña con close deje la URL igual que cerrarla con la X
+      if (params.action && path && pathRef.current === path) {
+        redirect("/");
+      }
       pathRef.current = null;
       tabPathRef.current = null;
     }
