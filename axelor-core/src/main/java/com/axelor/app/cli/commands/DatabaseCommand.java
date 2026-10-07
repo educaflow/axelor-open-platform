@@ -87,7 +87,7 @@ public class DatabaseCommand extends AbstractCliCommand {
       parent.run(
           () -> {
             boolean demo =
-                AppSettings.get().getBoolean(AvailableAppSettings.DATA_IMPORT_DEMO_DATA, true);
+                AppSettings.get().getBoolean(AvailableAppSettings.DATA_IMPORT_DEMO_DATA, false);
             ModuleManager manager = Beans.get(ModuleManager.class);
             manager.initialize(false, demo);
           });
@@ -109,7 +109,7 @@ public class DatabaseCommand extends AbstractCliCommand {
       parent.run(
           () -> {
             boolean demo =
-                AppSettings.get().getBoolean(AvailableAppSettings.DATA_IMPORT_DEMO_DATA, true);
+                AppSettings.get().getBoolean(AvailableAppSettings.DATA_IMPORT_DEMO_DATA, false);
             ModuleManager manager = Beans.get(ModuleManager.class);
             manager.update(demo, modules.toArray(String[]::new));
           });
