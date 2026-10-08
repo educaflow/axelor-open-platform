@@ -263,13 +263,20 @@ function SaveModalHandler({
           if (onSaveCallback) {
             await onSaveCallback({ ...record, _dirty: dirty });
           } else if (onSelectRef.current && handlerOnSave) {
-            const rec = await handlerOnSave({
+            // saveModal se ejecuta DENTRO de la acción del botón y handlerOnSave espera
+            // a que se vacíe la cola de acciones: esperarlo aquí es un interbloqueo.
+            // Se lanza sin esperar, así se guarda al acabar la acción y luego se cierra.
+            handlerOnSave({
               shouldSave: true,
               callOnSave: true,
               callOnRead: false,
-            });
-            onSelectRef.current(rec);
-            record = rec;
+            })
+              .then((rec) => {
+                onSelectRef.current?.(rec);
+                directClose?.(rec);
+              })
+              .catch((e) => console.error(e));
+            return;
           }
         }
 
