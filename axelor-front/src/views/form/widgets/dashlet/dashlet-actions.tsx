@@ -195,6 +195,7 @@ function DashletListMenu(
 ) {
   const { dataStore, gridStateAtom, viewType, onAdd, onDelete, ...menuProps } =
     props;
+  const newButtonTitle = (menuProps.view as GridView | undefined)?.newButtonTitle;
   const page = useDataStore(dataStore, (store) => store.page);
   const { offset = 0, limit = DEFAULT_PAGE_SIZE, totalCount = 0 } = page;
   const canPrev = offset > 0;
@@ -250,12 +251,11 @@ function DashletListMenu(
           },
           {
             key: "new",
-            text: i18n.get("New"),
+            text: newButtonTitle ? i18n.get(newButtonTitle) : i18n.get("New"),
             hidden: !onAdd,
-            iconProps: {
-              icon: "add",
-            },
-            iconOnly: true,
+            ...(newButtonTitle
+              ? { iconOnly: false, variant: "primary" }
+              : { iconProps: { icon: "add" }, iconOnly: true }),
             onClick: onAdd,
           },
           {
