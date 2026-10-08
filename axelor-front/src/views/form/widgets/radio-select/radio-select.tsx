@@ -78,7 +78,7 @@ export function RadioSelect(props: FieldProps<string | number | null>) {
             <Box
               key={option.value}
               onClick={() => handleClick(option, checked)}
-              mb={1}
+              mb={3}
               role={isRadio ? "radio" : "checkbox"}
               aria-checked={checked}
               data-testid={`option-${option.value}`}
@@ -89,7 +89,7 @@ export function RadioSelect(props: FieldProps<string | number | null>) {
                 className={clsx(styles.ibox, {
                   [styles.checked]: checked,
                 })}
-                me={vertical ? 0 : 2}
+                me={vertical ? 0 : 5}
               >
                 <Box as="span" className={styles.box} me={2} />
                 <Box as="span">{option.title}</Box>
