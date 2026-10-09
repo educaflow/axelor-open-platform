@@ -2,6 +2,28 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Registro de preguntas sobre AOP (MUST — leer antes de responder nada)
+
+Cada vez que el usuario haga una **pregunta sobre AOP** (cómo funciona algo del framework, dónde está, por qué se comporta así, cómo se extiende…), la respuesta **MUST** quedar almacenada en este repositorio, no solo en la conversación.
+Es obligatorio aunque la pregunta se haga desde otro proyecto (p. ej. desde `secretaria-virtual`) y aunque parezca trivial.
+
+**Objetivo: ahorrar tokens.**
+Las preguntas se repiten y la investigación sobre AOP es cara, así que cada respuesta guardada **MUST** permitir contestar la próxima vez sin volver a investigar: solo abriendo las referencias al código que la prueban.
+
+Cómo se almacena:
+1. Las preguntas van en la carpeta [`preguntas/`](preguntas/README.md), **un fichero por tema** (`acciones.md`, `vistas.md`, `servicios.md`, `modelos.md`, `seguridad.md`, `plataforma.md`, …), para que este `CLAUDE.md` no crezca.
+2. Cada pregunta se añade al **final** del fichero de su tema como una sección `## <pregunta resumida>` con la respuesta debajo: qué hace, dónde está y, si aplica, el flujo o el ejemplo mínimo.
+3. **Cada afirmación de la respuesta MUST llevar su referencia al código que la prueba**, como `ruta/relativa/Fichero.java:línea` (o `Clase#método` si la línea cambia mucho), y si es un flujo, la cadena de llamadas con una referencia por paso.
+   Una afirmación sin referencia no vale: o se busca el código que la demuestra o se marca explícitamente como «sin verificar».
+   Cada sección termina con un bloque `**Referencias.**` que lista todos los ficheros tocados, para poder releerlos de golpe.
+4. Si no existe un fichero para ese tema, se crea y se registra en el índice [`preguntas/README.md`](preguntas/README.md) (una línea por fichero con su tema).
+5. **Antes de investigar nada en AOP**, se consulta el índice y el fichero del tema.
+   Si la pregunta ya está contestada, se responde a partir de lo guardado comprobando solo las referencias (no se vuelve a explorar el repo) y se amplía o corrige la sección si hace falta, en lugar de duplicarla.
+   Si al comprobar una referencia resulta que el código cambió, se actualiza la sección.
+6. Se escribe en castellano, una frase por línea, sin cortar el texto a una anchura fija.
+
+Este bloque está aquí a propósito para que la instrucción no se olvide: **MUST NOT** borrarlo ni moverlo fuera de este fichero.
+
 ## What this repo is
 
 Fork of **Axelor Open Platform** (v8.1.1) — a Java/React framework for business applications. This fork contains EduFlow-specific customizations layered on top of the upstream framework.
