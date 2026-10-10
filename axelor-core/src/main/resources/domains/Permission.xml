@@ -18,7 +18,7 @@
     <boolean name="canRemove" title="Remove" help="Whether to grant remove access." />
     <boolean name="canImport" title="Import" help="Whether to grant import access." />
     <boolean name="canExport" title="Export" help="Whether to grant export access." />
-    <string name="condition" column="condition_value" help="Domain filter as condition." max="1024" />
+    <string name="condition" column="condition_value" help="Domain filter as condition." max="4096" />
     <string name="conditionParams" help="Comma separated list of params for the condition." />
   </entity>
 

@@ -81,7 +81,7 @@
         "help": "Domain filter as condition.",
         "nullable": true,
         "name": "condition",
-        "maxSize": 1024,
+        "maxSize": 4096,
         "type": "STRING",
         "title": "Condition"
       },
