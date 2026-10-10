@@ -117,3 +117,33 @@ Sí, pero solo uno: `<paquete inmediato>.*`.
 **Referencias.**
 - `axelor-core/src/main/java/com/axelor/auth/AuthResolver.java` — `filterPermissions` (exacto + `paquete.*`, suma), visibilidad de la clase.
 - `axelor-core/src/main/java/com/axelor/meta/MetaPermissions.java` — permisos de campo sin comodín.
+
+## ¿Puede la `condition` de un `Permission` llamar a un método Java por cada fila?
+
+No.
+La `condition` es un fragmento JPQL que se envuelve tal cual en un `JPQLFilter` (`axelor-core/src/main/java/com/axelor/auth/AuthSecurity.java:49`), cuyo `getQuery` lo devuelve entre paréntesis para meterlo en el `WHERE` (`axelor-core/src/main/java/com/axelor/rpc/filter/JPQLFilter.java:41-42`): lo evalúa la base de datos, no la JVM.
+Lo único que pasa por Java/Groovy son los `conditionParams`: cada uno se evalúa **una vez por usuario y petición**, con solo `__user__` en el binding, y su valor se pasa como parámetro `?N` (`AuthSecurity.java:35-46`, `:57`).
+No hay binding de la fila, así que un parámetro no puede depender de ella.
+
+Alternativas:
+- Calcular en Java **antes** de la consulta lo que dependa del usuario (p. ej. una lista de ids o de centros) en un `conditionParams` y usar `self.x IN (?1)` en la `condition`.
+- Si de verdad hace falta lógica por fila, pasarla a la BD: una función SQL (PL/pgSQL) llamada desde JPQL con `function('nombre', self.campo, ?1)` (sintaxis estándar de JPA 2.1, la traduce Hibernate; sin verificar en este repo), o un campo persistido/desnormalizado que se mantenga al guardar.
+
+**Referencias.**
+- `axelor-core/src/main/java/com/axelor/auth/AuthSecurity.java` — clase `Condition`: evaluación de `conditionParams` con Groovy y `__user__`, construcción del `JPQLFilter`.
+- `axelor-core/src/main/java/com/axelor/rpc/filter/JPQLFilter.java` — la condición se inserta como JPQL literal.
+
+## ¿Puede la `condition` indexar un `Map` de `__user__` con un campo de la fila (`'DIRECTOR' in __user__.mapa[self.tipoExpediente.code]`)?
+
+No.
+`__user__` llega a la consulta como un parámetro `?N` ya evaluado (`AuthSecurity.java:39-44`, `:49`), y JPQL no sabe indexar un `Map` Java con una columna de la fila: la fila solo existe en la BD.
+Además JPA no puede persistir un `Map<String, List<X>>` (el valor de un mapa no puede ser una colección), así que tampoco se puede navegar como asociación con `KEY()`/`VALUE()`.
+
+Dos salidas:
+- Precalcular en el `conditionParams` la lista de claves que cumplen y usar `self.tipoExpediente.code IN (?1)`.
+  Ojo: `conditionParams` se trocea por comas (`AuthSecurity.java:38`), así que la expresión Groovy **MUST NOT** llevar comas (`findAll { it.value.contains('DIRECTOR') }*.key`, no `findAll { k, v -> … }`).
+  Con lista vacía, `IN ()` depende de Hibernate (sin verificar).
+- Guardar la relación en una entidad (usuario, tipo de expediente, perfil) y filtrar con `EXISTS (SELECT … WHERE … = ?1 AND … = self.tipoExpediente)` con `conditionParams = __user__`.
+
+**Referencias.**
+- `axelor-core/src/main/java/com/axelor/auth/AuthSecurity.java` — clase `Condition`: `split(",")` de los parámetros, evaluación Groovy, `JPQLFilter`.
