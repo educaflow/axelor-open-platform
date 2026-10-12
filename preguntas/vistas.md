@@ -58,3 +58,16 @@ Es herencia de la UI antigua (AngularJS), de ahí la suposición de que pegaba v
 - `axelor-front/src/services/client/meta-utils.ts` — `attached`/`sidebar` como atributos booleanos.
 - `axelor-core/src/main/resources/object-views.xsd` — documentación de `sidebar` y `attached`.
 - `axelor-core/src/main/java/com/axelor/meta/schema/views/AbstractPanel.java` — atributo `attached`.
+
+## ¿Por qué un many-to-one con `<editor>` en solo lectura muestra solo el nombre del registro?
+
+Con el campo editable, el `<editor>` se pinta si existe, hay valor y `canEdit` (`axelor-front/src/views/form/builder/form-widget.tsx:98`).
+Con el campo `readonly`, el `<editor>` solo se pinta si lleva `x-viewer="true"` (`showEditorAsViewer`, `axelor-front/src/views/form/builder/form-widget.tsx:100`).
+Si no lo lleva, cae en `FormItem` (`axelor-front/src/views/form/builder/form-widget.tsx:157`), que pinta el widget many-to-one normal: solo el `namecolumn` del registro (p. ej. «Alumno1 CIPFP Mislata»).
+Con `x-viewer="true"` se pinta el `ReferenceEditor` con sus campos en solo lectura (`axelor-front/src/views/form/builder/form-editors.tsx:492`).
+El atributo en XML es `x-viewer` (`axelor-core/src/main/java/com/axelor/meta/schema/views/PanelEditor.java:40`).
+
+**Referencias.**
+- `axelor-front/src/views/form/builder/form-widget.tsx` — `canShowEditor`, `showEditorAsViewer` y el fallback a `FormItem`.
+- `axelor-front/src/views/form/builder/form-editors.tsx` — `ReferenceEditor` pasa `readonly` a `RecordEditor`.
+- `axelor-core/src/main/java/com/axelor/meta/schema/views/PanelEditor.java` — atributo `x-viewer`.
