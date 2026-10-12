@@ -16,7 +16,7 @@ public class BusinessMessages extends ArrayList<BusinessMessage> {
         if (isValid()) {
             return;
         }
-        throw new ValidationException(toString());
+        throw new ValidationException(toUserString());
     }
 
 
@@ -40,11 +40,19 @@ public class BusinessMessages extends ArrayList<BusinessMessage> {
         return businessMessages;
     }
 
-    @Override
-    public String toString() {
+    /** Texto legible para el usuario: un mensaje por línea. */
+    public String toUserString() {
         return this.stream()
                 .map(BusinessMessage::toString)
                 .collect(Collectors.joining("\n"));
+    }
+
+    @Override
+    public String toString() {
+        return this.stream()
+                .map(message -> "\"" + message.toString() + "\"")
+                .collect(Collectors.joining(",", "BusinessMessages=[", "]"))
+                .replaceAll("[\\r\\n]", " ");
     }
 
 }
